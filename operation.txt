@@ -1,0 +1,17 @@
+1. Determine the leftmost, rightmost, topmost and bottommost points of the input
+SVG image. For simplicity, assume that the input SVG image consists of only a
+single polygon.
+2. Decide on your principal block. For simplicity, let's say we will use "tiny
+square" for now.
+3. Decide on how many principal blocks you want to use on one of the axes. For
+simplicity, let's say on X axis.
+4. After deciding on how many principal blocks you want to use on one of the
+axes (say, X axis), calculate the width and height of the principal block w.r.t
+the length of the axis that you choose of the input SVG polygon.
+5. For every principal block tile, determine whether or not there should be a
+block inserted by calling "is_tile_mostly_in_shape" method and construct the
+structure matrix. Do this by starting from top-left and going first towards
+right and then one row down. This way, you will go in the natural direction of
+SVG coordinates. After the block insertions are completed, you can convert the
+blocks to start from bottom-left and go first towards right and then one row
+up by calling the "tranpose_and_invert_tiles" method in OpenMosaic.

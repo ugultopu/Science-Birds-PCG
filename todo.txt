@@ -1,0 +1,2 @@
+-You are using tile and block for almost the same thing. Clarify this and
+possibly use only one of them.
