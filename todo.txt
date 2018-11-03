@@ -1,2 +1,12 @@
+-You can calculate the number of platform blocks smarter. That is, calculate it
+so that if more than half of a platform block remains outside of the platform
+below, use one less platform block for that platform in order to keep that
+platform stable. Because if more than half of a platform block is outside
+of the structure, this means that the center of gravity of that block is not
+within the structure. This can cause stability problems. You can calculate how
+much of the block would be outside the structure by comparing the:
+1. Width of platform.
+2. Width of the row that the platform sits on top.
+3. Width of a single platform block.
 -You are using tile and block for almost the same thing. Clarify this and
 possibly use only one of them.

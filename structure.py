@@ -58,7 +58,8 @@ class Structure:
         self.primary_block_factor = self.get_primary_block_factor(num_primary_blocks_on_x_axis)
         self.factored_primary_block_width, self.factored_primary_block_height = self.get_factored_primary_block_dimensions()
         self.num_primary_blocks_on_y_axis = self.get_number_of_instances_required_to_cover_distance(self.get_shape_height(self.shape), self.factored_primary_block_height)
-        self.original_blocks = self.get_blocks()
+        # This gets only non-empty rows.
+        self.original_blocks = [row for row in self.get_blocks() if any(row)]
         self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
         # This is to start from bottom row and go towards the top row, instead
         # of vice-versa.
@@ -205,7 +206,7 @@ if __name__ == '__main__':
     config.read('config.ini')
 
     structure = Structure(config.get('DEFAULT', 'LevelPath'),
-                          Polygon([(0,0),(20,0),(10,20)]),
+                          Polygon([(0,0),(20,0),(15,20),(5,20)]),
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PrimaryBlock')],
                           BLOCK_REGISTRY['long_rectangle'],
                           int(config.get('DEFAULT', 'NumberOfPrimaryBlocksOnXAxis'))).construct_structure()
