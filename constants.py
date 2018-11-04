@@ -23,7 +23,7 @@ PIG_STRING = '<Pig type="{}" material="{}" x="{}" y="{}" rotation="{}"/>\n'
 # peculiarity happens if a <Block> elements start on the same line as the
 # <GameObject> element.
 LEVEL_TEMPLATE ='''
-<?xml version="1.0" encoding="utf-16"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Level width="2">
   <Camera x="0" y="2" minWidth="20" maxWidth="30">
     <Birds>
