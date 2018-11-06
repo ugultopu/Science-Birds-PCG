@@ -1,3 +1,5 @@
+-Change your script so that it creates the polygon from SVG "path" element
+values, instead of from SVG "polygon" values.
 -You can calculate the number of platform blocks smarter. That is, calculate it
 so that if more than half of a platform block remains outside of the platform
 below, use one less platform block for that platform in order to keep that

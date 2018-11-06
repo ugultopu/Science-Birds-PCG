@@ -1,0 +1,5 @@
+1. ImageMagicK
+2. Potrace
+3. Python 3
+  1. lxml
+  2. Shapely
