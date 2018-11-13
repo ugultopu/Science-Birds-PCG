@@ -1,5 +1,6 @@
 from bisect import bisect_left
 from configparser import ConfigParser
+from sys import argv
 
 from lxml import etree
 from shapely.geometry import Polygon
@@ -207,7 +208,7 @@ def get_polygon_from_svg(file):
                     for
                     pair
                     in
-                    etree.parse(file).find('{http://www.w3.org/2000/svg}polygon').get('points').split()])
+                    etree.parse(file).find('{http://www.w3.org/2000/svg}polyline').get('points').split()])
 
 
 if __name__ == '__main__':
@@ -215,7 +216,7 @@ if __name__ == '__main__':
     config.read('config.ini')
 
     structure = Structure(config.get('DEFAULT', 'LevelPath'),
-                          get_polygon_from_svg(config.get('DEFAULT', 'SVGFilePath')),
+                          get_polygon_from_svg(argv[1]),
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PrimaryBlock')],
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PlatformBlock')],
                           int(config.get('DEFAULT', 'NumberOfPrimaryBlocksOnXAxis'))).construct_structure()
