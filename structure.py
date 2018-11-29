@@ -3,6 +3,7 @@ from configparser import ConfigParser
 from sys import argv
 
 from lxml import etree
+from shapely.affinity import rotate
 from shapely.geometry import Polygon
 
 from constants import (BLOCK_REGISTRY,
@@ -204,11 +205,12 @@ class Structure:
 
 
 def get_polygon_from_svg(file):
-    return Polygon([tuple([float(c) for c in pair.split(',')])
+    return rotate(Polygon([tuple([float(c) for c in pair.split(',')])
                     for
                     pair
                     in
-                    etree.parse(file).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()])
+                    etree.parse(file).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()[:-1]]),
+                  180)
 
 
 if __name__ == '__main__':
