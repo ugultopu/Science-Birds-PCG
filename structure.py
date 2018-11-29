@@ -204,11 +204,11 @@ class Structure:
 
 
 def get_polygon_from_svg(file):
-    return Polygon([tuple([int(c) for c in pair.split(',')])
+    return Polygon([tuple([float(c) for c in pair.split(',')])
                     for
                     pair
                     in
-                    etree.parse(file).find('{http://www.w3.org/2000/svg}polygon').get('points').split()])
+                    etree.parse(file).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()])
 
 
 if __name__ == '__main__':

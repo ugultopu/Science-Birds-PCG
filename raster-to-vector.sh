@@ -1,15 +1,15 @@
 #!/bin/bash
 
 file_name="$1"
-file_name_without_extension="${file_name%.*}"
-file_extension="${file_name#*.}"
-monochrome_file_name_without_extension="$file_name_without_extension-monochrome"
-monochrome_file_name="$monochrome_file_name_without_extension.$file_extension"
-bitmap_file_name="$monochrome_file_name_without_extension.bmp"
-svg_file_name="$monochrome_file_name_without_extension.svg"
+base_name="${file_name%.*}"
+extension="${file_name#*.}"
+black_and_white_base_name="$base_name-black-and-white"
+denoised_base_name="$black_and_white_base_name-denoised"
 
-convert "$file_name" -monochrome "$monochrome_file_name"
-mogrify -format bmp "$monochrome_file_name"
-potrace -b svg "$bitmap_file_name"
+convert "$file_name" -negate -threshold 0 -negate "$black_and_white_base_name.$extension"
+python3 denoise_image.py "$black_and_white_base_name.$extension" "$denoised_base_name.$extension"
+mogrify -format bmp "$denoised_base_name.$extension"
+potrace -b svg "$denoised_base_name.bmp"
+python3 svg_path_to_polygon.py "$denoised_base_name.svg"
 
-echo "$svg_file_name"
+echo "$denoised_base_name-polygon.svg"
