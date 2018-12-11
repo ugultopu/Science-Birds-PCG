@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Level width="2">
+  <Camera x="0" y="2" minWidth="20" maxWidth="30">
+    <Birds>
+      <Bird type="BirdRed"/>
+    </Birds>
+    <Slingshot x="-8" y="-2.5">
+      <GameObjects>
+        <Block type="SquareTiny" material="stone" x="0.11" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.11" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.33" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.33" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.33" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.55" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.55" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.55" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.55" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.77" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.77" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.77" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.77" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.99" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.99" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.99" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="0.99" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.2100000000000002" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.2100000000000002" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.2100000000000002" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.2100000000000002" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.4300000000000002" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.4300000000000002" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.4300000000000002" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.4300000000000002" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.6500000000000001" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.6500000000000001" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.6500000000000001" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.6500000000000001" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.87" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.87" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.87" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="1.87" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.09" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.09" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.09" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.09" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.09" y="-2.29" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.31" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.31" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.31" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.31" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.31" y="-2.29" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.53" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.53" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.53" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.53" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.75" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.75" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.75" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.75" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.9699999999999998" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.9699999999999998" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.9699999999999998" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="2.9699999999999998" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.19" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.19" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.19" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.19" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.4099999999999997" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.4099999999999997" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.4099999999999997" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.4099999999999997" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.4099999999999997" y="-2.29" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.63" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.63" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.63" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.63" y="-2.51" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.85" y="-3.39" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.85" y="-2.9499999999999997" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="3.85" y="-2.73" rotation="0"/>
+<Block type="SquareTiny" material="stone" x="4.07" y="-2.9499999999999997" rotation="0"/>
+<Block type="RectBig" material="stone" x="0.029999999999999805" y="-3.17" rotation="0"/>
+<Block type="RectBig" material="stone" x="2.09" y="-3.17" rotation="0"/>
+<Block type="RectBig" material="stone" x="4.15" y="-3.17" rotation="0"/>
+
+      </GameObjects>
+    </Slingshot>
+  </Camera>
+</Level>

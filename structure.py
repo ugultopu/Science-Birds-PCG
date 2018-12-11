@@ -218,7 +218,7 @@ if __name__ == '__main__':
     config = ConfigParser()
     config.read('config.ini')
 
-    structure = Structure(config.get('DEFAULT', 'LevelPath'),
+    structure = Structure(config.get('DEFAULT', 'LevelPath') + svg_file_name.split('/')[-1].split('.')[0] + '.xml',
                           get_polygon_from_svg(svg_file_name),
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PrimaryBlock')],
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PlatformBlock')],
