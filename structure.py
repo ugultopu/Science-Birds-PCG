@@ -151,18 +151,23 @@ class Structure:
               + positioning_distance)
 
 
-    def get_lateral_distances_for_platform_blocks(self, index):
+    def get_list_of_platform_segment_boundaries(self, index):
+        indices = []
+        previous_block = False
+        for index, block in enumerate(self.original_blocks[index + 1]):
+            if block is not previous_block:
+                if block is False:
+                    indices.append((platform_start, index - 1))
+                else:
+                    platform_start = index
+            previous_block = block
+        return indices
+
+
+    def get_lateral_distances_for_platform_segment_blocks(self, platform_segment_boundaries):
         lateral_distances = []
-        # WARNING This method assumes that the empty blocks exists only on the
-        # beginning and end of a row. If any empty block exists after a
-        # non-empty block in the row, this calculation breaks down.
-        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index + 1].index(True)
-        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index + 1][::-1].index(True)
-        number_of_primary_blocks_to_cover = (len(self.original_blocks[index + 1])
-                                           - number_of_empty_blocks_before_the_first_non_empty_block
-                                           - number_of_empty_blocks_after_the_last_non_empty_block)
-        platform_center_distance = ((number_of_empty_blocks_before_the_first_non_empty_block
-                                   + number_of_primary_blocks_to_cover / 2)) * self.primary_block.width
+        number_of_primary_blocks_to_cover = platform_segment_boundaries[1] - platform_segment_boundaries[0] + 1
+        platform_center_distance = (platform_segment_boundaries[0] + platform_segment_boundaries[1]) / 2 * self.primary_block.width + self.primary_block.width / 2
         distance_to_cover = number_of_primary_blocks_to_cover * self.primary_block.width
         number_of_platform_blocks = self.get_number_of_instances_required_to_cover_distance(distance_to_cover, self.platform_block.width)
         if number_of_platform_blocks % 2 is 0:
@@ -176,6 +181,10 @@ class Structure:
             lateral_distances = [lateral_distances[0] - self.platform_block.width] + lateral_distances
             lateral_distances.append(lateral_distances[-1] + self.platform_block.width)
         return lateral_distances
+
+
+    def get_lateral_distances_for_platform_blocks(self, index):
+        return [distance for boundary in self.get_list_of_platform_segment_boundaries(index) for distance in self.get_lateral_distances_for_platform_segment_blocks(boundary)]
 
 
     def get_xml_elements(self):
