@@ -57,6 +57,8 @@ class Structure:
         self.shape = shape
         self.primary_block = primary_block
         self.platform_block = platform_block
+        self.num_primary_blocks_to_cover_pig_width = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].width, primary_block.width)
+        self.num_primary_blocks_to_cover_pig_height = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].height, primary_block.height)
         self.num_primary_blocks_on_x_axis = num_primary_blocks_on_x_axis
         self.primary_block_factor = self.get_primary_block_factor(num_primary_blocks_on_x_axis)
         self.factored_primary_block_width, self.factored_primary_block_height = self.get_factored_primary_block_dimensions()
@@ -187,24 +189,28 @@ class Structure:
         return [distance for boundary in self.get_list_of_platform_segment_boundaries(index) for distance in self.get_lateral_distances_for_platform_segment_blocks(boundary)]
 
 
+    def get_block_string(self, block_type, lateral_distance, row, block_material = 'stone'):
+        return BLOCK_STRING.format(block_type.xml_element_name,
+                                   block_material,
+                                   lateral_distance,
+                                   self.get_block_height(block_type, row, self.platforms),
+                                   0)
+
+
     def get_xml_elements(self):
         primary_block_elements = ''
         for column in range(len(self.blocks)):
             for row in range(len(self.blocks[column])):
                 if self.blocks[column][row]:
-                    primary_block_elements += BLOCK_STRING.format(self.primary_block.xml_element_name,
-                                                                  'stone',
-                                                                  column * self.primary_block.width + self.primary_block.width / 2,
-                                                                  self.get_block_height(self.primary_block, row, self.platforms),
-                                                                  0)
+                    primary_block_elements += self.get_block_string(self.primary_block,
+                                                                    column * self.primary_block.width + self.primary_block.width / 2,
+                                                                    row)
         platform_block_elements = ''
         for platform in self.platforms:
             for lateral_distance in self.get_lateral_distances_for_platform_blocks(platform):
-                platform_block_elements += BLOCK_STRING.format(self.platform_block.xml_element_name,
-                                                               'stone',
-                                                               lateral_distance,
-                                                               self.get_block_height(self.platform_block, platform, self.platforms),
-                                                               0)
+                platform_block_elements += self.get_block_string(self.platform_block,
+                                                                 lateral_distance,
+                                                                 platform)
         return primary_block_elements + platform_block_elements
 
 
