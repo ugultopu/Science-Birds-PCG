@@ -140,6 +140,69 @@ class Structure:
         return platforms
 
 
+    def primary_blocks_exist_above(self, index, lateral_distance):
+        '''
+        Checks above of a given lateral distance in order to determine if there
+        are primary blocks above or not. If not, returns False to signal that
+        a platform block should not be inserted to this location.
+        '''
+        # print(f'index is {index}')
+        start_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance - self.platform_block.width / 2, self.primary_block.width)
+        if start_index < 0:
+            start_index = 0
+        # print(f'start_index is {start_index}')
+        end_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance + self.platform_block.width / 2, self.primary_block.width)
+        # print(f'end_index is {end_index}')
+        # print(f'self.original_blocks[index + 1][start_index:end_index] is {self.original_blocks[index + 1][start_index:end_index]}')
+        if True in self.original_blocks[index + 1][start_index:end_index]:
+            return True
+        else:
+            return False
+
+
+    def add_if_primary_blocks_exist_above(self, index, lateral_distance, lateral_distances, append=True):
+        if self.primary_blocks_exist_above(index, lateral_distance):
+            if append:
+                lateral_distances.append(lateral_distance)
+            else:
+                lateral_distances.insert(0, lateral_distance)
+        # print(f'lateral_distances are {lateral_distances}')
+
+
+    def get_lateral_distances_for_platform_blocks(self, index):
+        lateral_distances = []
+        # FIXME Since now you check the row above for the existance of primary
+        # blocks before inserting a platform block, you can ditch the platform
+        # center calculation and assume that the platform center is always the
+        # middle of structure width. However, this still does not protect
+        # against placing unstable platform blocks. I need to find a separate
+        # solution for that.
+        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index + 1].index(True)
+        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index + 1][::-1].index(True)
+        number_of_primary_blocks_to_cover = (len(self.original_blocks[index + 1])
+                                           - number_of_empty_blocks_before_the_first_non_empty_block
+                                           - number_of_empty_blocks_after_the_last_non_empty_block)
+        platform_center_distance = ((number_of_empty_blocks_before_the_first_non_empty_block
+                                   + number_of_primary_blocks_to_cover / 2)) * self.primary_block.width
+        distance_to_cover = number_of_primary_blocks_to_cover * self.primary_block.width
+        number_of_platform_blocks = self.get_number_of_instances_required_to_cover_distance(distance_to_cover, self.platform_block.width)
+        if number_of_platform_blocks % 2 is 0:
+            self.add_if_primary_blocks_exist_above(index, platform_center_distance - self.platform_block.width / 2, lateral_distances)
+            self.add_if_primary_blocks_exist_above(index, platform_center_distance + self.platform_block.width / 2, lateral_distances)
+            number_of_platform_blocks -= 2
+        else:
+            self.add_if_primary_blocks_exist_above(index, platform_center_distance, lateral_distances)
+            number_of_platform_blocks -= 1
+        left_lateral_distance = lateral_distances[0] - self.platform_block.width
+        right_lateral_distance = lateral_distances[-1] + self.platform_block.width
+        for i in range(int(number_of_platform_blocks / 2)):
+            self.add_if_primary_blocks_exist_above(index, left_lateral_distance, lateral_distances, False)
+            self.add_if_primary_blocks_exist_above(index, right_lateral_distance, lateral_distances)
+            left_lateral_distance -= self.platform_block.width
+            right_lateral_distance += self.platform_block.width
+        return lateral_distances
+
+
     def get_block_height(self, block_type, index, platforms):
         number_of_platforms = bisect_left(sorted(self.platforms), index)
         total_platform_height = number_of_platforms * self.platform_block.height
@@ -159,33 +222,6 @@ class Structure:
                                    lateral_distance,
                                    self.get_block_height(block_type, row, self.platforms),
                                    0)
-
-
-    def get_lateral_distances_for_platform_blocks(self, index):
-        lateral_distances = []
-        # WARNING This method assumes that the empty blocks exists only on the
-        # beginning and end of a row. If any empty block exists after a
-        # non-empty block in the row, this calculation breaks down.
-        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index + 1].index(True)
-        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index + 1][::-1].index(True)
-        number_of_primary_blocks_to_cover = (len(self.original_blocks[index + 1])
-                                           - number_of_empty_blocks_before_the_first_non_empty_block
-                                           - number_of_empty_blocks_after_the_last_non_empty_block)
-        platform_center_distance = ((number_of_empty_blocks_before_the_first_non_empty_block
-                                   + number_of_primary_blocks_to_cover / 2)) * self.primary_block.width
-        distance_to_cover = number_of_primary_blocks_to_cover * self.primary_block.width
-        number_of_platform_blocks = self.get_number_of_instances_required_to_cover_distance(distance_to_cover, self.platform_block.width)
-        if number_of_platform_blocks % 2 is 0:
-            lateral_distances.append(platform_center_distance - self.platform_block.width / 2)
-            lateral_distances.append(platform_center_distance + self.platform_block.width / 2)
-            number_of_platform_blocks -= 2
-        else:
-            lateral_distances.append(platform_center_distance)
-            number_of_platform_blocks -= 1
-        for i in range(int(number_of_platform_blocks / 2)):
-            lateral_distances = [lateral_distances[0] - self.platform_block.width] + lateral_distances
-            lateral_distances.append(lateral_distances[-1] + self.platform_block.width)
-        return lateral_distances
 
 
     def get_xml_elements(self):
