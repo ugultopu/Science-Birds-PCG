@@ -1,5 +1,9 @@
+# macOS
+.DS_Store
+
 # Python
 __pycache__/
 
 # Generated images
 sample-.*
+Images/Edited/*/*-*
