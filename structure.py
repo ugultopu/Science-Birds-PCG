@@ -60,6 +60,8 @@ class Structure:
         self.num_primary_blocks_to_cover_pig_width = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].width, primary_block.width)
         self.num_primary_blocks_to_cover_pig_height = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].height, primary_block.height)
         self.num_primary_blocks_on_x_axis = num_primary_blocks_on_x_axis
+        self.structure_width = num_primary_blocks_on_x_axis * primary_block.width
+        self.num_platform_blocks_on_x_axis = self.get_number_of_instances_required_to_cover_distance(self.structure_width, platform_block.width)
         self.primary_block_factor = self.get_primary_block_factor(num_primary_blocks_on_x_axis)
         self.factored_primary_block_width, self.factored_primary_block_height = self.get_factored_primary_block_dimensions()
         self.num_primary_blocks_on_y_axis = self.get_number_of_instances_required_to_cover_distance(self.get_shape_height(self.shape), self.factored_primary_block_height)
@@ -171,21 +173,8 @@ class Structure:
 
     def get_lateral_distances_for_platform_blocks(self, index):
         lateral_distances = []
-        # FIXME Since now you check the row above for the existance of primary
-        # blocks before inserting a platform block, you can ditch the platform
-        # center calculation and assume that the platform center is always the
-        # middle of structure width. However, this still does not protect
-        # against placing unstable platform blocks. I need to find a separate
-        # solution for that.
-        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index + 1].index(True)
-        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index + 1][::-1].index(True)
-        number_of_primary_blocks_to_cover = (len(self.original_blocks[index + 1])
-                                           - number_of_empty_blocks_before_the_first_non_empty_block
-                                           - number_of_empty_blocks_after_the_last_non_empty_block)
-        platform_center_distance = ((number_of_empty_blocks_before_the_first_non_empty_block
-                                   + number_of_primary_blocks_to_cover / 2)) * self.primary_block.width
-        distance_to_cover = number_of_primary_blocks_to_cover * self.primary_block.width
-        number_of_platform_blocks = self.get_number_of_instances_required_to_cover_distance(distance_to_cover, self.platform_block.width)
+        number_of_platform_blocks = self.num_platform_blocks_on_x_axis
+        platform_center_distance = self.structure_width / 2
         if number_of_platform_blocks % 2 is 0:
             self.add_if_primary_blocks_exist_above(index, platform_center_distance - self.platform_block.width / 2, lateral_distances)
             self.add_if_primary_blocks_exist_above(index, platform_center_distance + self.platform_block.width / 2, lateral_distances)
