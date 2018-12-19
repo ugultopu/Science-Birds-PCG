@@ -70,6 +70,7 @@ class Structure:
         # of vice-versa.
         self.original_blocks = self.original_blocks[::-1]
         self.platforms = self.get_platforms()
+        self.get_platform_blocks()
 
 
     def get_primary_block_factor(self, num_primary_blocks):
@@ -203,6 +204,10 @@ class Structure:
         return lateral_distances
 
 
+    def get_platform_blocks(self):
+        self.platform_blocks = [self.get_lateral_distances_for_platform_blocks(platform) for platform in self.platforms]
+
+
     def get_block_height(self, block_type, index, platforms):
         number_of_platforms = bisect_left(sorted(self.platforms), index)
         total_platform_height = number_of_platforms * self.platform_block.height
@@ -233,11 +238,11 @@ class Structure:
                                                                     column * self.primary_block.width + self.primary_block.width / 2,
                                                                     row)
         platform_block_elements = ''
-        for platform in self.platforms:
-            for lateral_distance in self.get_lateral_distances_for_platform_blocks(platform):
+        for platform_blocks_of_row, platform_index in zip(self.platform_blocks, self.platforms):
+            for platform_block in platform_blocks_of_row:
                 platform_block_elements += self.get_block_string(self.platform_block,
-                                                                 lateral_distance,
-                                                                 platform)
+                                                                 platform_block,
+                                                                 platform_index)
         return primary_block_elements + platform_block_elements
 
 
