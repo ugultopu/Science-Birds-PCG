@@ -29,6 +29,8 @@ class Structure:
 
     @staticmethod
     def get_number_of_instances_required_to_cover_distance(covered_distance, covering_distance):
+        if covered_distance < 0:
+            return 0
         number_of_instances, remainder = divmod(int(covered_distance * MULTIPLIER),
                                                 int(covering_distance * MULTIPLIER))
         if remainder:
@@ -59,6 +61,8 @@ class Structure:
         self.platform_block = platform_block
         self.num_primary_blocks_to_cover_pig_width = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].width, primary_block.width)
         self.num_primary_blocks_to_cover_pig_height = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].height, primary_block.height)
+        # print(f'self.num_primary_blocks_to_cover_pig_width is {self.num_primary_blocks_to_cover_pig_width}')
+        # print(f'self.num_primary_blocks_to_cover_pig_height is {self.num_primary_blocks_to_cover_pig_height}')
         self.num_primary_blocks_on_x_axis = num_primary_blocks_on_x_axis
         self.primary_block_factor = self.get_primary_block_factor(num_primary_blocks_on_x_axis)
         self.factored_primary_block_width, self.factored_primary_block_height = self.get_factored_primary_block_dimensions()
@@ -69,8 +73,12 @@ class Structure:
         # This is to start from bottom row and go towards the top row, instead
         # of vice-versa.
         self.original_blocks = self.original_blocks[::-1]
-        self.platforms = self.get_platforms()
+        self.platforms = sorted(list(self.get_platforms()))
+        # print(f'self.platforms are {self.platforms}')
         self.get_platform_blocks()
+        if self.platforms:
+            self.get_blocks_for_pigs()
+            self.vacate_blocks_for_pigs()
 
 
     def get_primary_block_factor(self, num_primary_blocks):
@@ -206,6 +214,62 @@ class Structure:
 
     def get_platform_blocks(self):
         self.platform_blocks = [self.get_lateral_distances_for_platform_blocks(platform) for platform in self.platforms]
+
+
+    def get_rows_to_place_pigs_under(self):
+        rows_to_place_pigs_under = []
+        if self.platforms[0] >= self.num_primary_blocks_to_cover_pig_height - 1:
+            rows_to_place_pigs_under.append(self.platforms[0])
+        for index, platform in enumerate(self.platforms[1:]):
+            # print(f'platform is {platform}')
+            # print(f'self.platforms[index] is {self.platforms[index]}')
+            if platform - self.platforms[index] >= self.num_primary_blocks_to_cover_pig_height:
+                rows_to_place_pigs_under.append(platform)
+        return rows_to_place_pigs_under
+
+
+    def get_pig_indices_for_platform_block(self, lateral_distance):
+        blocks = []
+        num_blocks_to_cover = self.num_primary_blocks_to_cover_pig_width
+        platform_block_start = lateral_distance - self.platform_block.width / 2
+        platform_block_end = lateral_distance + self.platform_block.width / 2
+        start_index = self.get_number_of_instances_required_to_cover_distance(platform_block_start, self.primary_block.width)
+        end_index = self.get_number_of_instances_required_to_cover_distance(platform_block_end, self.primary_block.width)
+        platform_center_index = int((start_index + end_index) / 2)
+        if num_blocks_to_cover % 2 is 0:
+            blocks = [platform_center_index, platform_center_index + 1]
+            num_blocks_to_cover -= 2
+        else:
+            blocks = [platform_center_index]
+            num_blocks_to_cover -= 1
+        for i in range(int(num_blocks_to_cover / 2)):
+            blocks = [blocks[0] - 1] + blocks + [blocks[-1] + 1]
+        return blocks
+
+
+    def get_blocks_for_pigs(self):
+        pig_indices = {}
+        rows_to_place_pigs_under = self.get_rows_to_place_pigs_under()
+        # print(f'rows_to_place_pigs_under are {rows_to_place_pigs_under}')
+        # print(f'rows_to_place_pigs_under is {rows_to_place_pigs_under}')
+        # print(f'self.platforms is {self.platforms}')
+        # print(f'self.platform_blocks is {self.platform_blocks}')
+        for row in rows_to_place_pigs_under:
+            pig_indices[row] = []
+            for platform in self.platform_blocks[self.platforms.index(row)]:
+                pig_indices[row].extend(self.get_pig_indices_for_platform_block(platform))
+        self.pig_indices = pig_indices
+
+
+    def vacate_blocks_for_pigs(self):
+        for row_index in self.pig_indices:
+            for block_index in self.pig_indices[row_index]:
+                if block_index < len(self.original_blocks[row_index]):
+                    for i in range(self.num_primary_blocks_to_cover_pig_height):
+                        self.original_blocks[row_index - i][block_index] = False
+        self.original_blocks = self.original_blocks[::-1]
+        self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
+        self.original_blocks = self.original_blocks[::-1]
 
 
     def get_block_height(self, block_type, index, platforms):
