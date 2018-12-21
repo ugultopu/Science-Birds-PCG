@@ -3,11 +3,11 @@ from sys import argv
 from lxml import etree
 from svgpathtools import parse_path
 
-
+SVG_NAMESPACE = '{http://www.w3.org/2000/svg}'
 file_name, extension = argv[1].rsplit('.')
 root = etree.parse(file_name + '.' + extension).getroot()
-group_element = root.find('{http://www.w3.org/2000/svg}g')
-path_element = group_element.find('{http://www.w3.org/2000/svg}path')
+group_element = root.find(f'{SVG_NAMESPACE}g')
+path_element = group_element.find(f'{SVG_NAMESPACE}path')
 path = parse_path(path_element.get('d'))
 
 NUM_SAMPLES = 1024

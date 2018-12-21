@@ -74,6 +74,7 @@ class Structure:
         # of vice-versa.
         self.original_blocks = self.original_blocks[::-1]
         self.platforms = sorted(list(self.get_platforms()))
+        self.pig_center_indices = {}
         # print(f'self.platforms are {self.platforms}')
         self.get_platform_blocks()
         if self.platforms:
@@ -244,7 +245,7 @@ class Structure:
             num_blocks_to_cover -= 1
         for i in range(int(num_blocks_to_cover / 2)):
             blocks = [blocks[0] - 1] + blocks + [blocks[-1] + 1]
-        return blocks
+        return blocks, platform_center_index
 
 
     def get_blocks_for_pigs(self):
@@ -257,7 +258,9 @@ class Structure:
         for row in rows_to_place_pigs_under:
             pig_indices[row] = []
             for platform in self.platform_blocks[self.platforms.index(row)]:
-                pig_indices[row].extend(self.get_pig_indices_for_platform_block(platform))
+                blocks, platform_center_index = self.get_pig_indices_for_platform_block(platform)
+                pig_indices[row].extend(blocks)
+                self.pig_center_indices.setdefault(row, []).append(platform_center_index)
         self.pig_indices = pig_indices
 
 
@@ -286,11 +289,30 @@ class Structure:
 
 
     def get_block_string(self, block_type, lateral_distance, row, block_material = 'stone'):
-        return BLOCK_STRING.format(block_type.xml_element_name,
-                                   block_material,
-                                   lateral_distance,
-                                   self.get_block_height(block_type, row, self.platforms),
-                                   0)
+        if block_type is not BLOCK_REGISTRY['pig']:
+            return BLOCK_STRING.format(block_type.xml_element_name,
+                                       block_material,
+                                       lateral_distance,
+                                       self.get_block_height(block_type, row, self.platforms),
+                                       0)
+        else:
+            return PIG_STRING.format(block_type.xml_element_name,
+                                     block_material,
+                                     lateral_distance,
+                                     self.get_block_height(block_type, row, self.platforms),
+                                     0)
+
+
+    def get_xml_elements_for_pigs(self):
+        pig_elements = ''
+        lateral_distance_correction_index = .5 if self.num_primary_blocks_to_cover_pig_width % 2 == 0 else 0
+        vertical_difference_index = int(self.num_primary_blocks_to_cover_pig_height / 2 - .5)
+        for row in self.pig_center_indices:
+            for index in self.pig_center_indices[row]:
+                pig_elements += self.get_block_string(BLOCK_REGISTRY['pig'],
+                                                      (index + lateral_distance_correction_index) * self.primary_block.width + self.primary_block.width / 2,
+                                                      row - vertical_difference_index)
+        return pig_elements
 
 
     def get_xml_elements(self):
@@ -307,7 +329,8 @@ class Structure:
                 platform_block_elements += self.get_block_string(self.platform_block,
                                                                  platform_block,
                                                                  platform_index)
-        return primary_block_elements + platform_block_elements
+        pig_elements = self.get_xml_elements_for_pigs() if self.pig_center_indices else ''
+        return primary_block_elements + platform_block_elements + pig_elements
 
 
     def construct_structure(self):
