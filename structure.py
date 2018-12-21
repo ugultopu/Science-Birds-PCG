@@ -74,6 +74,7 @@ class Structure:
         # of vice-versa.
         self.original_blocks = self.original_blocks[::-1]
         self.platforms = sorted(list(self.get_platforms()))
+        self.generate_extra_platforms()
         self.pig_center_indices = {}
         # print(f'self.platforms are {self.platforms}')
         self.get_platform_blocks()
@@ -150,6 +151,21 @@ class Structure:
         return platforms
 
 
+    def generate_extra_platforms(self):
+        if self.platforms:
+            first_platform = self.platforms[0]
+            last_platform = self.platforms[-1]
+        else:
+            first_platform = last_platform = len(self.original_blocks)
+        self.platforms = set(self.platforms)
+        for i in range(first_platform - self.num_primary_blocks_to_cover_pig_height, 0, -self.num_primary_blocks_to_cover_pig_height):
+            self.platforms.add(i)
+        for i in range(last_platform + self.num_primary_blocks_to_cover_pig_height, len(self.original_blocks) - self.num_primary_blocks_to_cover_pig_height, self.num_primary_blocks_to_cover_pig_height):
+            self.platforms.add(i)
+        # TODO Insert extra platforms between the first and the last platform
+        self.platforms = sorted(list(self.platforms))
+
+
     def primary_blocks_exist_above(self, index, lateral_distance):
         '''
         Checks above of a given lateral distance in order to determine if there
@@ -203,8 +219,11 @@ class Structure:
         else:
             self.add_if_primary_blocks_exist_above(index, platform_center_distance, lateral_distances)
             number_of_platform_blocks -= 1
-        left_lateral_distance = lateral_distances[0] - self.platform_block.width
-        right_lateral_distance = lateral_distances[-1] + self.platform_block.width
+        if lateral_distances:
+            left_lateral_distance = lateral_distances[0] - self.platform_block.width
+            right_lateral_distance = lateral_distances[-1] + self.platform_block.width
+        else:
+            left_lateral_distance = right_lateral_distance = self.num_primary_blocks_on_x_axis * self.primary_block.width / 2
         for i in range(int(number_of_platform_blocks / 2)):
             self.add_if_primary_blocks_exist_above(index, left_lateral_distance, lateral_distances, False)
             self.add_if_primary_blocks_exist_above(index, right_lateral_distance, lateral_distances)
