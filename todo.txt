@@ -1,3 +1,5 @@
+-Understand why do we need to add/subtract 1 from the index in some places.
+Example: In "get_xml_elements_for_pigs". There are more examples about this.
 -Change your script so that it creates the polygon from SVG "path" element
 values, instead of from SVG "polygon" values.
 -You can calculate the number of platform blocks smarter. That is, calculate it
