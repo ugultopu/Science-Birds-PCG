@@ -146,7 +146,7 @@ class Structure:
                     last_element_is_a_gap = False
                 else:
                     if not last_element_is_a_gap:
-                        platforms.add(row)
+                        platforms.add(row + 1)
                     last_element_is_a_gap = True
         return platforms
 
@@ -158,9 +158,9 @@ class Structure:
         else:
             first_platform = last_platform = len(self.original_blocks)
         self.platforms = set(self.platforms)
-        for i in range(first_platform - self.num_primary_blocks_to_cover_pig_height, 0, -self.num_primary_blocks_to_cover_pig_height):
+        for i in range(first_platform - self.num_primary_blocks_to_cover_pig_height, self.num_primary_blocks_to_cover_pig_height - 1, -self.num_primary_blocks_to_cover_pig_height):
             self.platforms.add(i)
-        for i in range(last_platform + self.num_primary_blocks_to_cover_pig_height, len(self.original_blocks) - self.num_primary_blocks_to_cover_pig_height, self.num_primary_blocks_to_cover_pig_height):
+        for i in range(last_platform + self.num_primary_blocks_to_cover_pig_height, len(self.original_blocks) + 1, self.num_primary_blocks_to_cover_pig_height):
             self.platforms.add(i)
         # TODO Insert extra platforms between the first and the last platform
         self.platforms = sorted(list(self.platforms))
@@ -179,8 +179,8 @@ class Structure:
         # print(f'start_index is {start_index}')
         end_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance + self.platform_block.width / 2, self.primary_block.width)
         # print(f'end_index is {end_index}')
-        # print(f'self.original_blocks[index + 1][start_index:end_index] is {self.original_blocks[index + 1][start_index:end_index]}')
-        if True in self.original_blocks[index + 1][start_index:end_index]:
+        # print(f'self.original_blocks[index][start_index:end_index] is {self.original_blocks[index][start_index:end_index]}')
+        if True in self.original_blocks[index][start_index:end_index]:
             return True
         else:
             return False
@@ -197,15 +197,21 @@ class Structure:
 
     def get_lateral_distances_for_platform_blocks(self, index):
         lateral_distances = []
-        # FIXME Since now you check the row above for the existance of primary
-        # blocks before inserting a platform block, you can ditch the platform
-        # center calculation and assume that the platform center is always the
-        # middle of structure width. However, this still does not protect
-        # against placing unstable platform blocks. I need to find a separate
-        # solution for that.
-        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index + 1].index(True)
-        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index + 1][::-1].index(True)
-        number_of_primary_blocks_to_cover = (len(self.original_blocks[index + 1])
+        # For the imaginary platform that is located right above the top of the
+        # structure, don't place any platform blocks.
+        # FIXME Actually instead of returning nothing, we might need to return a
+        # full platform here. The reason is that we place the pigs if there is a
+        # platform block exists above. If no platform block exists, we don't
+        # place a pig. This defeats the whole purpose of the (imaginary)
+        # platform that is located right above the top of the structure. Hence,
+        # we either need to insert a full platform here, or change the way that
+        # the preparation and insertion of the pigs are done.
+        if index == len(self.original_blocks):
+            return lateral_distances
+        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index].index(True)
+        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index][::-1].index(True)
+        number_of_non_empty_blocks = len(self.original_blocks[index])
+        number_of_primary_blocks_to_cover = (number_of_non_empty_blocks
                                            - number_of_empty_blocks_before_the_first_non_empty_block
                                            - number_of_empty_blocks_after_the_last_non_empty_block)
         platform_center_distance = ((number_of_empty_blocks_before_the_first_non_empty_block
@@ -238,7 +244,7 @@ class Structure:
 
     def get_rows_to_place_pigs_under(self):
         rows_to_place_pigs_under = []
-        if self.platforms[0] >= self.num_primary_blocks_to_cover_pig_height - 1:
+        if self.platforms[0] >= self.num_primary_blocks_to_cover_pig_height:
             rows_to_place_pigs_under.append(self.platforms[0])
         for index, platform in enumerate(self.platforms[1:]):
             # print(f'platform is {platform}')
@@ -286,9 +292,9 @@ class Structure:
     def vacate_blocks_for_pigs(self):
         for row_index in self.pig_indices:
             for block_index in self.pig_indices[row_index]:
-                if block_index < len(self.original_blocks[row_index]):
-                    for i in range(self.num_primary_blocks_to_cover_pig_height):
-                        self.original_blocks[row_index - i][block_index] = False
+                for i in range(self.num_primary_blocks_to_cover_pig_height):
+                    if block_index < len(self.original_blocks[row_index - i - 1]):
+                        self.original_blocks[row_index - i - 1][block_index] = False
         self.original_blocks = self.original_blocks[::-1]
         self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
         self.original_blocks = self.original_blocks[::-1]
@@ -296,10 +302,10 @@ class Structure:
 
     def get_block_height(self, block_type, index):
         number_of_platforms = bisect_left(sorted(self.platforms), index)
+        if block_type is self.primary_block and index in self.platforms:
+            number_of_platforms += 1
         total_platform_height = number_of_platforms * self.platform_block.height
         total_primary_block_height = index * self.primary_block.height
-        if block_type is self.platform_block:
-            total_primary_block_height += self.primary_block.height
         positioning_distance = block_type.height / 2
         return (GROUND_HEIGHT
               + total_platform_height
@@ -330,7 +336,7 @@ class Structure:
                 pig_elements += self.get_block_string(BLOCK_REGISTRY['pig'],
                                                       (index + lateral_distance_correction_index) * self.primary_block.width
                                                       + self.primary_block.width / 2,
-                                                      self.get_block_height(self.primary_block, row - self.num_primary_blocks_to_cover_pig_height + 1)
+                                                      self.get_block_height(self.primary_block, row - self.num_primary_blocks_to_cover_pig_height)
                                                       - self.primary_block.height / 2
                                                       + BLOCK_REGISTRY['pig'].height / 2)
         return pig_elements
@@ -360,11 +366,16 @@ class Structure:
 
 
 def get_polygon_from_svg(file):
+    # Need to turn image upside down. The reason is that Potrace generates an
+    # upside down SVG image and renders it correctly using "scale" function of
+    # the "transform" SVG attribute. Since using the "scale" function is not
+    # possible in Shapely, we just generate the shape as upside down and then
+    # rotate it.
     return rotate(Polygon([tuple([float(c) for c in pair.split(',')])
                     for
                     pair
                     in
-                    etree.parse(file).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()[:-1]]),
+                    etree.parse(file).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()]),
                   180)
 
 
