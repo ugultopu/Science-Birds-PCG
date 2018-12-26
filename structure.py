@@ -218,18 +218,14 @@ class Structure:
                                    + number_of_primary_blocks_to_cover / 2)) * self.primary_block.width
         distance_to_cover = number_of_primary_blocks_to_cover * self.primary_block.width
         number_of_platform_blocks = self.get_number_of_instances_required_to_cover_distance(distance_to_cover, self.platform_block.width)
-        if number_of_platform_blocks % 2 is 0:
-            self.add_if_primary_blocks_exist_above(index, platform_center_distance - self.platform_block.width / 2, lateral_distances)
-            self.add_if_primary_blocks_exist_above(index, platform_center_distance + self.platform_block.width / 2, lateral_distances)
-            number_of_platform_blocks -= 2
-        else:
+        if number_of_platform_blocks % 2 is 1:
             self.add_if_primary_blocks_exist_above(index, platform_center_distance, lateral_distances)
             number_of_platform_blocks -= 1
-        if lateral_distances:
-            left_lateral_distance = lateral_distances[0] - self.platform_block.width
-            right_lateral_distance = lateral_distances[-1] + self.platform_block.width
+            left_lateral_distance = platform_center_distance - self.platform_block.width
+            right_lateral_distance = platform_center_distance + self.platform_block.width
         else:
-            left_lateral_distance = right_lateral_distance = self.num_primary_blocks_on_x_axis * self.primary_block.width / 2
+            left_lateral_distance = platform_center_distance - self.platform_block.width / 2
+            right_lateral_distance = platform_center_distance + self.platform_block.width / 2
         for i in range(int(number_of_platform_blocks / 2)):
             self.add_if_primary_blocks_exist_above(index, left_lateral_distance, lateral_distances, False)
             self.add_if_primary_blocks_exist_above(index, right_lateral_distance, lateral_distances)
