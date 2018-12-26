@@ -286,15 +286,40 @@ class Structure:
 
 
     def vacate_blocks_for_pigs(self):
+        prepend_column = append_column = False
         for row_index in self.pig_indices:
             for pig_block_index, block_index in enumerate(self.pig_indices[row_index]):
                 for i in range(self.num_primary_blocks_to_cover_pig_height):
+                    # Vacate the relevant blocks.
                     if block_index < len(self.original_blocks[row_index - i - 1]):
                         self.original_blocks[row_index - i - 1][block_index] = False
-                    if pig_block_index is 0 and block_index > 0:
-                        self.original_blocks[row_index - i - 1][block_index - 1] = True
-                    if pig_block_index is len(self.pig_indices[row_index]) - 1 and block_index < len(self.original_blocks[row_index - i - 1]) - 1:
-                        self.original_blocks[row_index - i - 1][block_index + 1] = True
+                    # Add a column to the left of of the pig to help with the
+                    # stability.
+                    if pig_block_index is 0:
+                        if block_index > 0:
+                            self.original_blocks[row_index - i - 1][block_index - 1] = True
+                        # If a pig is located at index 0, we need to prepend a
+                        # new column to the list of columns in order to ensure
+                        # the existance of a column to the left of the pig.
+                        else:
+                            prepend_column = True
+                    # Add a column to the right of of the pig to help with the
+                    # stability.
+                    if pig_block_index is len(self.pig_indices[row_index]) - 1:
+                        if block_index < len(self.original_blocks[row_index - i - 1]) - 1:
+                            self.original_blocks[row_index - i - 1][block_index + 1] = True
+                        # If a pig is located at the last index, we need to
+                        # append a new column to the list of columns in order to
+                        # ensure the existance of a column to the right of the
+                        # pig.
+                        else:
+                            append_column = True
+        if prepend_column:
+            for row in self.original_blocks:
+                row.insert(0, True)
+        if append_column:
+            for row in self.original_blocks:
+                row.append(True)
         self.original_blocks = self.original_blocks[::-1]
         self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
         self.original_blocks = self.original_blocks[::-1]
