@@ -1,3 +1,11 @@
+-After inserting pigs, make sure there is at least one column of primary blocks
+exist between the left and the right of the pig. I presume that this will
+increase the stability of the structure.
+-Fix platform insertion logic. Instead of wholesale inserting platforms for a
+row, determine the partitions of the row where a platform block is needed and
+insert that way. Note that for this logic, you must resolve the platform blocks
+that are intersecting. Because of this, it might not be as straightforward as
+you thought.
 -Whenever a platform block is not inserted, there cannot be a pig placed under
 that platform block. This defeats the purpose of generating (but not inserting)
 the platform that is located right above the top of the structure. Find a

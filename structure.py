@@ -287,10 +287,14 @@ class Structure:
 
     def vacate_blocks_for_pigs(self):
         for row_index in self.pig_indices:
-            for block_index in self.pig_indices[row_index]:
+            for pig_block_index, block_index in enumerate(self.pig_indices[row_index]):
                 for i in range(self.num_primary_blocks_to_cover_pig_height):
                     if block_index < len(self.original_blocks[row_index - i - 1]):
                         self.original_blocks[row_index - i - 1][block_index] = False
+                    if pig_block_index is 0 and block_index > 0:
+                        self.original_blocks[row_index - i - 1][block_index - 1] = True
+                    if pig_block_index is len(self.pig_indices[row_index]) - 1 and block_index < len(self.original_blocks[row_index - i - 1]) - 1:
+                        self.original_blocks[row_index - i - 1][block_index + 1] = True
         self.original_blocks = self.original_blocks[::-1]
         self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
         self.original_blocks = self.original_blocks[::-1]
