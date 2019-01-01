@@ -61,8 +61,6 @@ class Structure:
         self.platform_block = platform_block
         self.num_primary_blocks_to_cover_pig_width = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].width, primary_block.width)
         self.num_primary_blocks_to_cover_pig_height = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].height, primary_block.height)
-        # print(f'self.num_primary_blocks_to_cover_pig_width is {self.num_primary_blocks_to_cover_pig_width}')
-        # print(f'self.num_primary_blocks_to_cover_pig_height is {self.num_primary_blocks_to_cover_pig_height}')
         self.num_primary_blocks_on_x_axis = num_primary_blocks_on_x_axis
         self.primary_block_factor = self.get_primary_block_factor(num_primary_blocks_on_x_axis)
         self.factored_primary_block_width, self.factored_primary_block_height = self.get_factored_primary_block_dimensions()
@@ -75,12 +73,9 @@ class Structure:
         self.original_blocks = self.original_blocks[::-1]
         self.platforms = sorted(list(self.get_platforms()))
         self.generate_extra_platforms()
-        self.pig_center_indices = {}
-        # print(f'self.platforms are {self.platforms}')
         self.get_platform_blocks()
-        if self.platforms:
-            self.get_blocks_for_pigs()
-            self.vacate_blocks_for_pigs()
+        self.get_blocks_for_pigs()
+        self.vacate_blocks_for_pigs()
 
 
     def get_primary_block_factor(self, num_primary_blocks):
@@ -172,14 +167,10 @@ class Structure:
         are primary blocks above or not. If not, returns False to signal that
         a platform block should not be inserted to this location.
         '''
-        # print(f'index is {index}')
         start_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance - self.platform_block.width / 2, self.primary_block.width)
         if start_index < 0:
             start_index = 0
-        # print(f'start_index is {start_index}')
         end_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance + self.platform_block.width / 2, self.primary_block.width)
-        # print(f'end_index is {end_index}')
-        # print(f'self.original_blocks[index][start_index:end_index] is {self.original_blocks[index][start_index:end_index]}')
         if True in self.original_blocks[index][start_index:end_index]:
             return True
         else:
@@ -192,7 +183,6 @@ class Structure:
                 lateral_distances.append(lateral_distance)
             else:
                 lateral_distances.insert(0, lateral_distance)
-        # print(f'lateral_distances are {lateral_distances}')
 
 
     def get_lateral_distances_for_platform_blocks(self, index):
@@ -239,62 +229,90 @@ class Structure:
 
 
     def get_rows_to_place_pigs_under(self):
+        '''
+        Pigs are placed under the platforms where the previous (lower) platform
+        is at least 'self.num_primary_blocks_to_cover_pig_height' lower than the
+        current platform.
+        '''
         rows_to_place_pigs_under = []
         if self.platforms[0] >= self.num_primary_blocks_to_cover_pig_height:
             rows_to_place_pigs_under.append(self.platforms[0])
         for index, platform in enumerate(self.platforms[1:]):
-            # print(f'platform is {platform}')
-            # print(f'self.platforms[index] is {self.platforms[index]}')
             if platform - self.platforms[index] >= self.num_primary_blocks_to_cover_pig_height:
                 rows_to_place_pigs_under.append(platform)
         return rows_to_place_pigs_under
 
 
-    def get_pig_indices_for_platform_block(self, lateral_distance):
-        blocks = []
-        num_blocks_to_cover = self.num_primary_blocks_to_cover_pig_width
+    def get_platform_center_index(self, lateral_distance):
         platform_block_start = lateral_distance - self.platform_block.width / 2
         platform_block_end = lateral_distance + self.platform_block.width / 2
         start_index = self.get_number_of_instances_required_to_cover_distance(platform_block_start, self.primary_block.width)
         end_index = self.get_number_of_instances_required_to_cover_distance(platform_block_end, self.primary_block.width)
-        platform_center_index = int((start_index + end_index) / 2)
-        if num_blocks_to_cover % 2 is 0:
-            blocks = [platform_center_index, platform_center_index + 1]
-            num_blocks_to_cover -= 2
-        else:
-            blocks = [platform_center_index]
-            num_blocks_to_cover -= 1
-        for i in range(int(num_blocks_to_cover / 2)):
-            blocks = [blocks[0] - 1] + blocks + [blocks[-1] + 1]
-        return blocks, platform_center_index
+        return int((start_index + end_index) / 2)
 
 
     def get_blocks_for_pigs(self):
-        pig_indices = {}
+        '''
+        Populates self.pig_indices so that it will become a dictionary, where
+        keys are row indices and values are the places where to place the pig.
+        Note that each value is a single index. That is, each pig is represented
+        by the horizontal center, and vertical top primary block. The necessary
+        calculations are done in vacate_blocks_for_pigs to ensure correct
+        insertion.
+        '''
+        self.pig_indices = {}
+        # FIXME We find the pig indices by checking out the platform blocks. If
+        # there are no platform blocks, no pigs can be inserted. You might want
+        # to accomodate for the cases of inserting a pig to the top of the
+        # structure. That case does not require any platforms.
+        if not self.platforms:
+            return
         rows_to_place_pigs_under = self.get_rows_to_place_pigs_under()
-        # print(f'rows_to_place_pigs_under are {rows_to_place_pigs_under}')
-        # print(f'rows_to_place_pigs_under is {rows_to_place_pigs_under}')
-        # print(f'self.platforms is {self.platforms}')
-        # print(f'self.platform_blocks is {self.platform_blocks}')
         for row in rows_to_place_pigs_under:
-            pig_indices[row] = []
             for platform in self.platform_blocks[self.platforms.index(row)]:
-                blocks, platform_center_index = self.get_pig_indices_for_platform_block(platform)
-                pig_indices[row].extend(blocks)
-                self.pig_center_indices.setdefault(row, []).append(platform_center_index)
-        self.pig_indices = pig_indices
+                self.pig_indices.setdefault(row, []).append(self.get_platform_center_index(platform))
 
 
     def vacate_blocks_for_pigs(self):
+        offsets_for_blocks_to_vacate = [int(-i / 2) if i % 2 == 0 else int((i + 1) / 2) for i in range(self.num_primary_blocks_to_cover_pig_width)]
+        # Since the middle of the width is the left element of the center for
+        # pig widths with even number of primary blocks, the following
+        # calculation is required for the left column.
+        half_of_num_primary_blocks_to_cover_pig_width, remainder = divmod(self.num_primary_blocks_to_cover_pig_width,
+                                                                          2)
+        offset_for_block_to_fill_on_left = half_of_num_primary_blocks_to_cover_pig_width + (1 if remainder else 0)
+        offset_for_block_to_fill_on_right = half_of_num_primary_blocks_to_cover_pig_width + 1
+
         for row_index in self.pig_indices:
-            for pig_block_index, block_index in enumerate(self.pig_indices[row_index]):
-                for i in range(self.num_primary_blocks_to_cover_pig_height):
-                    if block_index < len(self.original_blocks[row_index - i - 1]):
-                        self.original_blocks[row_index - i - 1][block_index] = False
-                    if pig_block_index is 0 and block_index > 0:
-                        self.original_blocks[row_index - i - 1][block_index - 1] = True
-                    if pig_block_index is len(self.pig_indices[row_index]) - 1 and block_index < len(self.original_blocks[row_index - i - 1]) - 1:
-                        self.original_blocks[row_index - i - 1][block_index + 1] = True
+            for block_index in self.pig_indices[row_index]:
+                for row_index_offset in range(self.num_primary_blocks_to_cover_pig_height):
+                    row_index_of_block_to_vacate = row_index - 1 - row_index_offset
+                    for column_index_offset in offsets_for_blocks_to_vacate:
+                        column_index_of_block_to_vacate = block_index + column_index_offset
+                        if column_index_of_block_to_vacate > -1 and column_index_of_block_to_vacate < len(self.original_blocks[row_index_of_block_to_vacate]):
+                            self.original_blocks[row_index_of_block_to_vacate][column_index_of_block_to_vacate] = False
+                    # Make sure there is a column of primary blocks to the left
+                    # of the pig.
+                    column_index_of_block_to_fill_on_left = block_index - offset_for_block_to_fill_on_left
+                    if column_index_of_block_to_fill_on_left > -1:
+                        self.original_blocks[row_index_of_block_to_vacate][column_index_of_block_to_fill_on_left] = True
+                    else:
+                        # TODO We might prepend a column in this case but it was
+                        # problemetic when I did that. For example, the
+                        # platforms need to be extended to cover this new column
+                        # as well.
+                        pass
+                    # Make sure there is a column of primary blocks to the right
+                    # of the pig.
+                    column_index_of_block_to_fill_on_right = block_index + offset_for_block_to_fill_on_right
+                    if column_index_of_block_to_fill_on_right < len(self.original_blocks[row_index_of_block_to_vacate]):
+                        self.original_blocks[row_index_of_block_to_vacate][column_index_of_block_to_fill_on_right] = True
+                    else:
+                        # TODO We might append a column in this case but it was
+                        # problemetic when I did that. For example, the
+                        # platforms need to be extended to cover this new column
+                        # as well.
+                        pass
         self.original_blocks = self.original_blocks[::-1]
         self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
         self.original_blocks = self.original_blocks[::-1]
@@ -331,8 +349,8 @@ class Structure:
     def get_xml_elements_for_pigs(self):
         pig_elements = ''
         lateral_distance_correction_index = .5 if self.num_primary_blocks_to_cover_pig_width % 2 == 0 else 0
-        for row in self.pig_center_indices:
-            for index in self.pig_center_indices[row]:
+        for row in self.pig_indices:
+            for index in self.pig_indices[row]:
                 pig_elements += self.get_block_string(BLOCK_REGISTRY['pig'],
                                                       (index + lateral_distance_correction_index) * self.primary_block.width
                                                       + self.primary_block.width / 2,
@@ -356,7 +374,7 @@ class Structure:
                 platform_block_elements += self.get_block_string(self.platform_block,
                                                                  platform_block,
                                                                  self.get_block_height(self.platform_block, platform_index))
-        pig_elements = self.get_xml_elements_for_pigs() if self.pig_center_indices else ''
+        pig_elements = self.get_xml_elements_for_pigs()
         return primary_block_elements + platform_block_elements + pig_elements
 
 
