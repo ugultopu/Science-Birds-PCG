@@ -283,16 +283,8 @@ class Structure:
 
 
     def vacate_blocks_for_pigs(self):
-        # Offsets go like this:
-        # 0: 0
-        # 1: 1
-        # 2: -1
-        # 3: 2
-        # 4: -2
-        # 5: 3
-        # 6: -3
-        # etc.
-        # Hence, the following line.
+        # Refer to "pattern_for_vacating_blocks_for_pigs.txt" for more
+        # information.
         offsets_for_blocks_to_vacate = [int(-i / 2) if i % 2 == 0 else int((i + 1) / 2) for i in range(self.num_primary_blocks_to_cover_pig_width)]
         # Since the middle of the width is the left element of the center for
         # pig widths with an even number of primary blocks, the following
