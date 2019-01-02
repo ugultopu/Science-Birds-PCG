@@ -78,6 +78,15 @@ class Structure:
         self.vacate_blocks_for_pigs()
 
 
+    def __str__(self):
+        row_strings = []
+        for index, row in enumerate(self.original_blocks):
+            row_string = f'{index:{len(str(len(self.original_blocks) - 1))}}' + ' ' + ('_' if index in self.platforms else ' ')
+            row_string += ''.join(['▉' if block is True else ' ' for block in row])
+            row_strings.append(row_string)
+        return '\n'.join(row_strings[::-1])
+
+
     def get_primary_block_factor(self, num_primary_blocks):
         '''Normally every block has a width and height. However, since we want to
         decide on the number of primary blocks that will exist on an axis of the
