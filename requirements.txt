@@ -1,5 +1,8 @@
-1. ImageMagicK
+1. ImageMagick
 2. Potrace
 3. Python 3
-  1. lxml
+  1. SciPy
   2. Shapely
+  3. imageio
+  4. lxml
+  5. svgpathtools
