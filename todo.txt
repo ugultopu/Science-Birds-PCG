@@ -1,6 +1,3 @@
--After inserting pigs, make sure there is at least one column of primary blocks
-exist between the left and the right of the pig. I presume that this will
-increase the stability of the structure.
 -Fix platform insertion logic. Instead of wholesale inserting platforms for a
 row, determine the partitions of the row where a platform block is needed and
 insert that way. Note that for this logic, you must resolve the platform blocks
@@ -10,8 +7,6 @@ you thought.
 that platform block. This defeats the purpose of generating (but not inserting)
 the platform that is located right above the top of the structure. Find a
 solution for this.
--In Cat.jpg, some platforms are generated but not inserted. This causes free
-falling blocks when you start the level. Find out the reason and fix it.
 -Clean up the code that accommodates for edge cases. Such code is spread all
 over.
 -Understand why Potrace cannot trace some images. This prevents generating
