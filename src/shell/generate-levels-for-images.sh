@@ -7,5 +7,5 @@ find Images/Edited -name '*-*' -delete
 find Images/Edited -type f | while read image
 do
     echo "$image"
-    ./generate-level.sh "$image"
+    src/shell/generate-level.sh "$image"
 done

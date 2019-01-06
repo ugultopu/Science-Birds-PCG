@@ -4,8 +4,8 @@ Generate structures in Science Birds from a given image that represents a struct
 
 ## Operation
 
-    ./generate-levels-for-images.sh
+    src/shell/generate-levels-for-images.sh
 
 or
 
-    ./generate-level.sh raster_input_image_file_name
+    src/shell/generate-level.sh raster_input_image_file
