@@ -411,7 +411,8 @@ def get_polygon_from_svg(file):
 if __name__ == '__main__':
     svg_file_name = argv[1]
     config = ConfigParser()
-    config.read('config.ini')
+    config.read('../../config.ini')
+    print(svg_file_name)
 
     structure = Structure(config.get('DEFAULT', 'LevelPath') + svg_file_name.split('/')[-1].split('.')[0] + '.xml',
                           get_polygon_from_svg(svg_file_name),

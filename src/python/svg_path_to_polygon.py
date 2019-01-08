@@ -4,7 +4,9 @@ from lxml import etree
 from svgpathtools import parse_path
 
 SVG_NAMESPACE = '{http://www.w3.org/2000/svg}'
-file_name, extension = argv[1].rsplit('.')
+index = argv[1].rfind('.')
+file_name = argv[1][0:index]
+extension = argv[1][index+1:]
 root = etree.parse(file_name + '.' + extension).getroot()
 group_element = root.find(f'{SVG_NAMESPACE}g')
 path_element = group_element.find(f'{SVG_NAMESPACE}path')

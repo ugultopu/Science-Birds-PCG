@@ -1,4 +1,5 @@
 #!/bin/bash
 
-svg_file_name="$(src/shell/raster-to-vector.sh $1)"
-python3 src/python/structure.py "$svg_file_name"
+svg_file_name="$(./raster-to-vector.sh $1)"
+
+python3 ../python/structure.py "$svg_file_name"
