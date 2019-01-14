@@ -2,9 +2,9 @@ from block import Block
 
 BLOCK_REGISTRY = {
     'square_with_hole': Block('SquareHole', 0.85, 0.85),
-    'tiny_square': Block('SquareTiny', 0.22, 0.22),
-    'long_rectangle': Block('RectBig', 2.06, 0.22),
-    'pig': Block('BasicSmall', 0.5, 0.5),
+    'tiny_square': Block('SquareTiny', 0.225, 0.225),
+    'long_rectangle': Block('RectBig', 2.065, 0.225),
+    'pig': Block('BasicSmall', 0.55, 0.55),
 }
 
 # TODO Find a different solution for the following.
