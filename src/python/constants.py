@@ -25,8 +25,12 @@ PIG_STRING = '<Pig type="{}" material="{}" x="{}" y="{}" rotation="{}"/>\n'
 LEVEL_TEMPLATE ='''
 <?xml version="1.0" encoding="utf-8"?>
 <Level width="2">
-  <Camera x="0" y="2" minWidth="20" maxWidth="30">
+  <Camera x="0" y="2" minWidth="20" maxWidth="35">
     <Birds>
+      <Bird type="BirdWhite"/>
+      <Bird type="BirdYellow"/>
+      <Bird type="BirdBlue"/>
+      <Bird type="BirdBlack"/>
       <Bird type="BirdRed"/>
     </Birds>
     <Slingshot x="-8" y="-2.5">

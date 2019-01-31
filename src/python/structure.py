@@ -12,410 +12,329 @@ from constants import (BLOCK_REGISTRY,
                        BLOCK_STRING,
                        PIG_STRING,
                        LEVEL_TEMPLATE)
+import random
+import numpy as np
+import obj_xml_generator as oxg
 
 
-class Structure:
-    @staticmethod
-    def get_shape_width(shape):
-        bounds = shape.bounds
-        return bounds[2] - bounds[0]
+class OBJmatrix:
+    def __init__(self,svg_file_path,difficulty,interval):
+        self.perimeter = int(10 * difficulty) if difficulty < 10 else 100
+        self.interval = interval
+        self.addition = lambda i: 1 if i%2==1 else 0
+        
+        self.file_path = svg_file_path
+        config = ConfigParser()
+        config.read('../../config.ini')
+        self.level_path = config.get('DEFAULT', 'LevelPath') + svg_file_path.split('/')[-1].split('.')[0] + '.xml'
+        self.shape = self.__get_polygon_from_svg()
+        self.matrix = self.__build_matrix()
+        self.set_all_blocks()
+        self.get_outline()
+        self.set_all_blocks()
+        self.replace_to_rectangle()
+        self.add_support()
+        self.support_points.reverse()
+        self.adding_pigs()
+        
 
-
-    @staticmethod
-    def get_shape_height(shape):
-        bounds = shape.bounds
-        return bounds[3] - bounds[1]
-
-
-    @staticmethod
-    def get_number_of_instances_required_to_cover_distance(covered_distance, covering_distance):
-        if covered_distance < 0:
-            return 0
-        number_of_instances, remainder = divmod(int(covered_distance * MULTIPLIER),
-                                                int(covering_distance * MULTIPLIER))
-        if remainder:
-            number_of_instances += 1
-        return number_of_instances
-
-
-    @staticmethod
-    def transpose_and_invert_blocks(blocks):
-        """
-        The blocks start from top-left and go towards bottom-right. This is not
-        practical when constructing a structure. We want to start from
-        bottom-left and go towards top-right. Hence, we transpose and invert
-        blocks.
-        """
-        return [column[::-1] for column in map(list, zip(*blocks))]
-
-
-    def __init__(self,
-                 level_path,
-                 shape,
-                 primary_block,
-                 platform_block,
-                 num_primary_blocks_on_x_axis):
-        self.level_path = level_path
-        self.shape = shape
-        self.primary_block = primary_block
-        self.platform_block = platform_block
-        self.num_primary_blocks_to_cover_pig_width = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].width, primary_block.width)
-        self.num_primary_blocks_to_cover_pig_height = self.get_number_of_instances_required_to_cover_distance(BLOCK_REGISTRY['pig'].height, primary_block.height)
-        self.num_primary_blocks_on_x_axis = num_primary_blocks_on_x_axis
-        self.primary_block_factor = self.get_primary_block_factor(num_primary_blocks_on_x_axis)
-        self.factored_primary_block_width, self.factored_primary_block_height = self.get_factored_primary_block_dimensions()
-        self.num_primary_blocks_on_y_axis = self.get_number_of_instances_required_to_cover_distance(self.get_shape_height(self.shape), self.factored_primary_block_height)
-        # This gets only non-empty rows.
-        self.original_blocks = [row for row in self.get_blocks() if any(row)]
-        self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
-        # This is to start from bottom row and go towards the top row, instead
-        # of vice-versa.
-        self.original_blocks = self.original_blocks[::-1]
-        self.platforms = sorted(list(self.get_platforms()))
-        self.generate_extra_platforms()
-        self.get_platform_blocks()
-        self.get_blocks_for_pigs()
-        self.vacate_blocks_for_pigs()
-
-
-    def __str__(self):
-        row_strings = []
-        for index, row in enumerate(self.original_blocks):
-            row_string = f'{index:{len(str(len(self.original_blocks) - 1))}}' + ' ' + ('_' if index in self.platforms else ' ')
-            row_string += ''.join(['▉' if block is True else ' ' for block in row])
-            row_strings.append(row_string)
-        return '\n'.join(row_strings[::-1])
-
-
-    def get_primary_block_factor(self, num_primary_blocks):
-        '''Normally every block has a width and height. However, since we want to
-        decide on the number of primary blocks that will exist on an axis of the
-        structure, we want to proportionate the primary block dimensions according
-        to this number. Hence, we get the multiplier needed to get this number.'''
-        shape_width = self.get_shape_width(self.shape)
-        target_primary_block_width = shape_width / num_primary_blocks
-        return target_primary_block_width / self.primary_block.width
-
-
-    def get_factored_primary_block_dimensions(self):
-        return (self.primary_block.width * self.primary_block_factor,
-                self.primary_block.height * self.primary_block_factor)
-
-
-    def is_tile_mostly_in_shape(self, tile):
-        '''We designate an area for the structure and we partition it into small,
-        equal tiles. The tiles can be of any size and shape but for simplicity, they
-        are usually square. The tiles represent the "primary blocks" that are
-        going to form the structure in the output.
-
-        Then, in order to determine whether there should be a block present on a
-        given tile or not, we find the intersection area of the tile with the
-        structure SVG which is given as the input and if the intersection area is
-        greater than half of the tile area, then we return true. Otherwise, we
-        return false.
-        '''
-        return tile.intersection(self.shape).area > tile.area / 2
-
-
-    def get_blocks(self):
-        # Blocks is a boolean array indicating whether or not there is a block
-        # in the indicated index.
-        blocks = []
-        for row in range(self.num_primary_blocks_on_y_axis):
-            blocks_in_row = []
-            y = self.shape.bounds[1] + row * self.factored_primary_block_height
-            for column in range(self.num_primary_blocks_on_x_axis):
-                x = self.shape.bounds[0] + column * self.factored_primary_block_width
-                tile = Polygon([(x,y),
-                                (x + self.factored_primary_block_width, y),
-                                (x + self.factored_primary_block_width, y + self.factored_primary_block_height),
-                                (x, y + self.factored_primary_block_height)])
-                if self.is_tile_mostly_in_shape(tile):
-                    blocks_in_row.append(True)
-                else:
-                    blocks_in_row.append(False)
-            blocks.append(blocks_in_row)
-        return blocks
-
-
-    def get_platforms(self):
-        '''In order to support blocks without anything underneath, we need to
-        insert platforms.
-        '''
-        platforms = set()
-        for column in self.blocks:
-            last_element_is_a_gap = True
-            for row, tile in reversed(list(enumerate(column))):
-                if tile:
-                    last_element_is_a_gap = False
-                else:
-                    if not last_element_is_a_gap:
-                        platforms.add(row + 1)
-                    last_element_is_a_gap = True
-        return platforms
-
-
-    def generate_extra_platforms(self):
-        if self.platforms:
-            first_platform = self.platforms[0]
-            last_platform = self.platforms[-1]
-        else:
-            first_platform = last_platform = len(self.original_blocks)
-        self.platforms = set(self.platforms)
-        for i in range(first_platform - self.num_primary_blocks_to_cover_pig_height, self.num_primary_blocks_to_cover_pig_height - 1, -self.num_primary_blocks_to_cover_pig_height):
-            self.platforms.add(i)
-        for i in range(last_platform + self.num_primary_blocks_to_cover_pig_height, len(self.original_blocks) + 1, self.num_primary_blocks_to_cover_pig_height):
-            self.platforms.add(i)
-        # TODO Insert extra platforms between the first and the last platform
-        self.platforms = sorted(list(self.platforms))
-
-
-    def primary_blocks_exist_above(self, index, lateral_distance):
-        '''
-        Checks above of a given lateral distance in order to determine if there
-        are primary blocks above or not. If not, returns False to signal that
-        a platform block should not be inserted to this location.
-        '''
-        start_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance - self.platform_block.width / 2, self.primary_block.width)
-        if start_index < 0:
-            start_index = 0
-        end_index = self.get_number_of_instances_required_to_cover_distance(lateral_distance + self.platform_block.width / 2, self.primary_block.width)
-        if True in self.original_blocks[index][start_index:end_index]:
-            return True
-        else:
-            return False
-
-
-    def add_if_primary_blocks_exist_above(self, index, lateral_distance, lateral_distances, append=True):
-        if self.primary_blocks_exist_above(index, lateral_distance):
-            if append:
-                lateral_distances.append(lateral_distance)
-            else:
-                lateral_distances.insert(0, lateral_distance)
-
-
-    def get_lateral_distances_for_platform_blocks(self, index):
-        lateral_distances = []
-        # For the imaginary platform that is located right above the top of the
-        # structure, don't place any platform blocks.
-        # FIXME Actually instead of returning nothing, we might need to return a
-        # full platform here. The reason is that we place the pigs if there is a
-        # platform block exists above. If no platform block exists, we don't
-        # place a pig. This defeats the whole purpose of the (imaginary)
-        # platform that is located right above the top of the structure. Hence,
-        # we either need to insert a full platform here, or change the way that
-        # the preparation and insertion of the pigs are done.
-        if index == len(self.original_blocks):
-            return lateral_distances
-        number_of_empty_blocks_before_the_first_non_empty_block = self.original_blocks[index].index(True)
-        number_of_empty_blocks_after_the_last_non_empty_block = self.original_blocks[index][::-1].index(True)
-        number_of_non_empty_blocks = len(self.original_blocks[index])
-        number_of_primary_blocks_to_cover = (number_of_non_empty_blocks
-                                           - number_of_empty_blocks_before_the_first_non_empty_block
-                                           - number_of_empty_blocks_after_the_last_non_empty_block)
-        platform_center_distance = ((number_of_empty_blocks_before_the_first_non_empty_block
-                                   + number_of_primary_blocks_to_cover / 2)) * self.primary_block.width
-        distance_to_cover = number_of_primary_blocks_to_cover * self.primary_block.width
-        number_of_platform_blocks = self.get_number_of_instances_required_to_cover_distance(distance_to_cover, self.platform_block.width)
-        if number_of_platform_blocks % 2 is 1:
-            self.add_if_primary_blocks_exist_above(index, platform_center_distance, lateral_distances)
-            number_of_platform_blocks -= 1
-            left_lateral_distance = platform_center_distance - self.platform_block.width
-            right_lateral_distance = platform_center_distance + self.platform_block.width
-        else:
-            left_lateral_distance = platform_center_distance - self.platform_block.width / 2
-            right_lateral_distance = platform_center_distance + self.platform_block.width / 2
-        for i in range(int(number_of_platform_blocks / 2)):
-            self.add_if_primary_blocks_exist_above(index, left_lateral_distance, lateral_distances, False)
-            self.add_if_primary_blocks_exist_above(index, right_lateral_distance, lateral_distances)
-            left_lateral_distance -= self.platform_block.width
-            right_lateral_distance += self.platform_block.width
-        return lateral_distances
-
-
-    def get_platform_blocks(self):
-        self.platform_blocks = [self.get_lateral_distances_for_platform_blocks(platform) for platform in self.platforms]
-
-
-    def get_rows_to_place_pigs_under(self):
-        '''
-        Pigs are placed under the platforms where the previous (lower) platform
-        is at least 'self.num_primary_blocks_to_cover_pig_height' lower than the
-        current platform.
-        '''
-        rows_to_place_pigs_under = []
-        if self.platforms[0] >= self.num_primary_blocks_to_cover_pig_height:
-            rows_to_place_pigs_under.append(self.platforms[0])
-        for index, platform in enumerate(self.platforms[1:]):
-            if platform - self.platforms[index] >= self.num_primary_blocks_to_cover_pig_height:
-                rows_to_place_pigs_under.append(platform)
-        return rows_to_place_pigs_under
-
-
-    def get_platform_center_index(self, lateral_distance):
-        platform_block_start = lateral_distance - self.platform_block.width / 2
-        platform_block_end = lateral_distance + self.platform_block.width / 2
-        start_index = self.get_number_of_instances_required_to_cover_distance(platform_block_start, self.primary_block.width)
-        end_index = self.get_number_of_instances_required_to_cover_distance(platform_block_end, self.primary_block.width)
-        return int((start_index + end_index) / 2)
-
-
-    def get_blocks_for_pigs(self):
-        '''
-        Populates self.pig_indices so that it will become a dictionary, where
-        keys are row indices and values are the places where to place the pig.
-        Note that each value is a single index. That is, each pig is represented
-        by the horizontal center, and vertical top primary block. The necessary
-        calculations are done in vacate_blocks_for_pigs to ensure correct
-        insertion.
-        '''
-        self.pig_indices = {}
-        # FIXME We find the pig indices by checking out the platform blocks. If
-        # there are no platform blocks, no pigs can be inserted. You might want
-        # to accomodate for the cases of inserting a pig to the top of the
-        # structure. That case does not require any platforms.
-        if not self.platforms:
-            return
-        rows_to_place_pigs_under = self.get_rows_to_place_pigs_under()
-        for row in rows_to_place_pigs_under:
-            for platform in self.platform_blocks[self.platforms.index(row)]:
-                self.pig_indices.setdefault(row, []).append(self.get_platform_center_index(platform))
-
-
-    def vacate_blocks_for_pigs(self):
-        # Refer to "pattern_for_vacating_blocks_for_pigs.txt" for more
-        # information.
-        offsets_for_blocks_to_vacate = [int(-i / 2) if i % 2 == 0 else int((i + 1) / 2) for i in range(self.num_primary_blocks_to_cover_pig_width)]
-        # Since the middle of the width is the left element of the center for
-        # pig widths with an even number of primary blocks, the following
-        # calculation is required for the left column.
-        half_of_num_primary_blocks_to_cover_pig_width, remainder = divmod(self.num_primary_blocks_to_cover_pig_width,
-                                                                          2)
-        offset_for_block_to_fill_on_left = half_of_num_primary_blocks_to_cover_pig_width + (1 if remainder else 0)
-        offset_for_block_to_fill_on_right = half_of_num_primary_blocks_to_cover_pig_width + 1
-
-        for row_index in self.pig_indices:
-            for block_index in self.pig_indices[row_index]:
-                for row_index_offset in range(self.num_primary_blocks_to_cover_pig_height):
-                    row_index_of_block_to_vacate = row_index - 1 - row_index_offset
-                    for column_index_offset in offsets_for_blocks_to_vacate:
-                        column_index_of_block_to_vacate = block_index + column_index_offset
-                        if column_index_of_block_to_vacate > -1 and column_index_of_block_to_vacate < len(self.original_blocks[row_index_of_block_to_vacate]):
-                            self.original_blocks[row_index_of_block_to_vacate][column_index_of_block_to_vacate] = False
-                    # Make sure there is a column of primary blocks to the left
-                    # of the pig.
-                    column_index_of_block_to_fill_on_left = block_index - offset_for_block_to_fill_on_left
-                    if column_index_of_block_to_fill_on_left > -1:
-                        self.original_blocks[row_index_of_block_to_vacate][column_index_of_block_to_fill_on_left] = True
-                    else:
-                        # TODO We might prepend a column in this case but it was
-                        # problemetic when I did that. For example, the
-                        # platforms need to be extended to cover this new column
-                        # as well.
-                        pass
-                    # Make sure there is a column of primary blocks to the right
-                    # of the pig.
-                    column_index_of_block_to_fill_on_right = block_index + offset_for_block_to_fill_on_right
-                    if column_index_of_block_to_fill_on_right < len(self.original_blocks[row_index_of_block_to_vacate]):
-                        self.original_blocks[row_index_of_block_to_vacate][column_index_of_block_to_fill_on_right] = True
-                    else:
-                        # TODO We might append a column in this case but it was
-                        # problemetic when I did that. For example, the
-                        # platforms need to be extended to cover this new column
-                        # as well.
-                        pass
-        self.original_blocks = self.original_blocks[::-1]
-        self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
-        self.original_blocks = self.original_blocks[::-1]
-
-
-    def get_block_height(self, block_type, index):
-        number_of_platforms = bisect_left(sorted(self.platforms), index)
-        if block_type is self.primary_block and index in self.platforms:
-            number_of_platforms += 1
-        total_platform_height = number_of_platforms * self.platform_block.height
-        total_primary_block_height = index * self.primary_block.height
-        positioning_distance = block_type.height / 2
-        return (GROUND_HEIGHT
-              + total_platform_height
-              + total_primary_block_height
-              + positioning_distance)
-
-
-    def get_block_string(self, block_type, lateral_distance, vertical_distance, block_material = 'stone'):
-        if block_type is not BLOCK_REGISTRY['pig']:
-            return BLOCK_STRING.format(block_type.xml_element_name,
-                                       block_material,
-                                       lateral_distance,
-                                       vertical_distance,
-                                       0)
-        else:
-            return PIG_STRING.format(block_type.xml_element_name,
-                                     block_material,
-                                     lateral_distance,
-                                     vertical_distance,
-                                     0)
-
-
-    def get_xml_elements_for_pigs(self):
-        pig_elements = ''
-        lateral_distance_correction_index = .5 if self.num_primary_blocks_to_cover_pig_width % 2 == 0 else 0
-        for row in self.pig_indices:
-            for index in self.pig_indices[row]:
-                pig_elements += self.get_block_string(BLOCK_REGISTRY['pig'],
-                                                      (index + lateral_distance_correction_index) * self.primary_block.width
-                                                      + self.primary_block.width / 2,
-                                                      self.get_block_height(self.primary_block, row - self.num_primary_blocks_to_cover_pig_height)
-                                                      - self.primary_block.height / 2
-                                                      + BLOCK_REGISTRY['pig'].height / 2)
-        return pig_elements
-
-
-    def get_xml_elements(self):
-        primary_block_elements = ''
-        for column in range(len(self.blocks)):
-            for row in range(len(self.blocks[column])):
-                if self.blocks[column][row]:
-                    primary_block_elements += self.get_block_string(self.primary_block,
-                                                                    column * self.primary_block.width + self.primary_block.width / 2,
-                                                                    self.get_block_height(self.primary_block, row))
-        platform_block_elements = ''
-        for platform_blocks_of_row, platform_index in zip(self.platform_blocks, self.platforms):
-            for platform_block in platform_blocks_of_row:
-                platform_block_elements += self.get_block_string(self.platform_block,
-                                                                 platform_block,
-                                                                 self.get_block_height(self.platform_block, platform_index))
-        pig_elements = self.get_xml_elements_for_pigs()
-        return primary_block_elements + platform_block_elements + pig_elements
-
-
-    def construct_structure(self):
-        with open(self.level_path, 'w') as level_file:
-            level_file.write(LEVEL_TEMPLATE.strip().format(self.get_xml_elements()))
-
-
-def get_polygon_from_svg(file):
+        
+        #generator levels
+        self.generator_levels()
+        
+    def __get_polygon_from_svg(self):
     # Need to turn image upside down. The reason is that Potrace generates an
     # upside down SVG image and renders it correctly using "scale" function of
     # the "transform" SVG attribute. Since using the "scale" function is not
     # possible in Shapely, we just generate the shape as upside down and then
     # rotate it.
-    return rotate(Polygon([tuple([float(c) for c in pair.split(',')])
-                    for
-                    pair
-                    in
-                    etree.parse(file).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()]),
-                  180)
+        return rotate(Polygon([tuple([float(c) for c in pair.split(',')])
+                        for
+                        pair
+                        in
+                        etree.parse(self.file_path).find('.//{http://www.w3.org/2000/svg}polygon').get('points').split()]),
+                      180)
+
+    def __build_matrix(self):
+        #caculate the overall area and build simulation matrix
+        minx,miny,maxx,maxy = self.shape.bounds
+        #get the number of row in the matrix
+        self.num_block_row = int((maxy-miny)/((maxx-minx)+(maxy-miny)) * self.perimeter)
+        self.num_block_row = 60 if self.num_block_row > 60 else self.num_block_row - self.num_block_row%2
+        
+        self.num_block_column = self.perimeter - self.num_block_row
+        
+        
+        width = (maxx-minx)/self.num_block_column
+        height = (maxy-miny)/self.num_block_row
+        
+        matrix = []
+        for i in range(self.num_block_row):
+            tam = []
+            for j in range(self.num_block_column):
+                poly = Polygon([(minx + j * width, miny + i * height),
+                        (minx + j * width + width, miny + i * height),
+                        (minx + j * width + width, miny + i * height + height),
+                        (minx + j * width, miny + i * height + height)])
+                if poly.intersection(self.shape).area > poly.area*0.1:
+                    tam.append(1)
+                else:
+                    tam.append(0)
+            matrix.append(tam)
+            
+
+        
+        #extend the matrix size to do futher operations
+        for i in matrix:
+            for index in range(8):
+                i.insert(0,0)
+                i.append(0)
+        for i in range(2):
+            matrix.insert(0,[0 for i in range(len(matrix[0]))])
+        return matrix
+    
+    def set_all_blocks(self):
+        #calling set block type
+        for i in range(len(self.matrix)-1):
+            for j in range(1,len(self.matrix[0])-1):
+                if self.matrix[i][j] != 0:
+                    self.matrix[i][j] = self.set_block_type(i,j)
+
+    def set_block_type(self,i,j):
+    #     the method will convert the blocks into 4 basic block types 
+    #     and return a integer which descripts the information about surrounding blocks of this blocks,
+    #     1: this block have both downleft and downright blocks support it
+    #     2: this block only have downleft block
+    #     3: this block only have downright block
+    #     4: this block nether have downleft or downright
+        addition = self.addition(i)
 
 
-if __name__ == '__main__':
-    svg_file_name = argv[1]
-    config = ConfigParser()
-    config.read('../../config.ini')
-    print(svg_file_name)
+        topleft,topright,downleft,downright = [
+                                               self.matrix[i-1][j-1+addition] != 0 if i != 0 else False,
+                                               self.matrix[i-1][j+addition] != 0 if i !=0 else False,
+                                               self.matrix[i+1][j-1+addition] != 0, 
+                                               self.matrix[i+1][j+addition] != 0
+                                              ]
+#             At this time, if block dont have down left, label this block as 2, 
+#             else if the block dont have down right, label as 4
+#             else if the block neither have down left or down right, label as 3
+        if downleft and downright:
+            return 1
+        elif not downleft and not downright:
+            return 3
+        elif downleft:
+            return  2
+        elif downright:
+            return 4
+                    
+    def get_outline(self):
+        #find the outline for each row in the matrix
+        widths = []
+        for i in range(len(self.matrix)):
+            width = []
+            copy = self.matrix[i].copy()
+            for j in range(1,len(self.matrix[i])-1):
+                bool_row = copy[j] != 0
+                bool_plus = copy[j+1] != 0
+                bool_minus = copy[j-1] != 0
+#                 if bool_plus and bool_minus:   
+                self.matrix[i][j] = 0
+                if not bool_row and bool_plus:
+                    left = j+1
+                if not bool_plus and bool_row:
+                    width.append([left,j])
+            widths.append(width)
+        self.widths = widths
+    
+    def replace_to_rectangle(self):
+        #insert rectangle into the matrix
+        self.rectangle_points = []
+        self.support_points = []
+        for i in range(len(self.widths)-1,-1,-1):
+            if self.widths[i] != [] and (len(self.matrix)-1-i)%self.interval == 0:
+                addition = self.addition(i)
+                rectangle_points = []
+                support_points = []
+                for left,right in self.widths[i]:
+                    rectangles = []
+                    width = right-left+1
+                    while(width > 0):
+                        if width >= 9:
+                            rectangles.append([35,9])
+                            width -= 9
+                        elif width >= 7:
+                            rectangles.append([34,7])
+                            width -= 7
+                        else:
+                            rectangles.append([33,4])
+                            width -= 4
+    
+                    start = left + int(np.floor(width/2))
+                    support_points.append(start + addition)
+            
+                    #shift left point if there are another rectangle
+                    while(self.matrix[i][start] != 0):
+                        start += 1
+                    for rect in rectangles:
+                        rectangle_points.append([start,start+rect[1]-1])
+                        support_points.append(start+rect[1]-1)
+                        for index in range(start,start+rect[1]):                # clear the blocks
+                            self.matrix[i][index] = 9
+                        self.matrix[i][start+int(rect[1]/2)] = rect[0]
+                        start += rect[1]
+                    support_points[-1] = support_points[-1]
+                self.rectangle_points.append([i,rectangle_points])
+                self.support_points.append([i,support_points])
+                
+    def add_support(self):
+        for row,rects in self.rectangle_points:
+            if row + self.interval < len(self.matrix):
+                for rect in rects:
+                    for index,col in enumerate(rect):
+                        supported = False
+                        #if there is a support block beneath this rectangle
+                        if self.matrix[row+self.interval][col] != 0:
+                            for i in range(1,self.interval):
+                                if i%2 == 1:
+                                    self.matrix[row+i][col+1+self.addition(row+i)] = 1
+                                self.matrix[row+i][col] = 1
+                            continue
+                        #if there is support block beneath near by this rectangle
+                        for j in range(1,3):
+                            if self.matrix[row+self.interval][col+(j if index == 0 else -j)] != 0:
+                                y = col+(j if index == 0 else -j)
+                                for index in range(1,self.interval):
+                                    if index%2 == 1:
+                                        self.matrix[row+index][y+1+self.addition(row+index)] = 1
+                                    self.matrix[row+index][y] = 1
+                                supported = True
+                                break
+                        #if there is a support block locate in the reverse direction of this rectangle
+                        for j in range(1,3):
+                            if self.matrix[row+self.interval][col-(j if index == 0 else -j)] != 0:
+                                x,y = (row,col-(j-2 if index == 0 else -j+2))
+                                for count in range(0,3):
+                                    addition = self.addition(x)
+                                    y = y+addition+(-1 if index == 0 else 0)
+                                    x = x+1
+                                    self.matrix[x][y] = 1
+                                supported = True      
+                                break                  
+                        if not supported:
+                            self.matrix[row+2][col] = 6
 
-    structure = Structure(config.get('DEFAULT', 'LevelPath') + svg_file_name.split('/')[-1].split('.')[0] + '.xml',
-                          get_polygon_from_svg(svg_file_name),
-                          BLOCK_REGISTRY[config.get('DEFAULT', 'PrimaryBlock')],
-                          BLOCK_REGISTRY[config.get('DEFAULT', 'PlatformBlock')],
-                          int(config.get('DEFAULT', 'NumberOfPrimaryBlocksOnXAxis'))).construct_structure()
+    def adding_pigs(self):
+        for i, rects in self.rectangle_points:
+            for left,right in rects:
+                j = int((left+right)/2)+1
+                placeable = True
+                for row in range(1,3):
+                    for col in range(-1,2):
+                        if self.matrix[i-row][j+col] != 0:
+                            placeable = False
+                if placeable:
+                    if random.randint(0,100) > 90:
+                        self.matrix[i-2][j] = 4
+                        placeable == False
+                    else :
+                        self.matrix[i-1][j] = 7
+    
+    def generator_levels(self):
+        #length_square = 0.24055
+        #height_square = 0.225
+        length = 0.24055
+        height = 0.22888
+        start_pos = (-4,-3.4)
+
+
+        block = self.matrix
+        ftblock = np.fliplr(np.transpose(block))
+        primary_block_elements = ''
+        support_block_elements = ''
+        
+        for i in range(len(ftblock)):
+            for j in range(len(ftblock[i])):
+                if ftblock[i][j] == 32:
+                    support_block_elements += oxg.get_object_string('Block',
+                                                                    'RectTiny',
+                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    height * j,
+                                                                    block_material='stone',
+                                                                    spining = 0)
+                elif ftblock[i][j] == 33:
+                    support_block_elements += oxg.get_object_string('Block',
+                                                                    'RectSmall',
+                                                                    i * length + (0.12 if j%2==0 else 0)- 0.14, 
+                                                                    height * j,
+                                                                    block_material='stone',
+                                                                    spining = 0)
+                elif ftblock[i][j] == 34:
+                    support_block_elements += oxg.get_object_string('Block',
+                                                                    'RectMedium',
+                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    height * j,
+                                                                    block_material='stone',
+                                                                    spining = 0)
+                elif ftblock[i][j] == 35:
+                    support_block_elements += oxg.get_object_string('Block',
+                                                                    'RectBig',
+                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    height * j,
+                                                                    block_material='stone',
+                                                                    spining = 0)
+                elif ftblock[i][j] == 4:
+                    support_block_elements += oxg.get_object_string('TNT',
+                                                                    '',
+                                                                    i * length + (0.12 if j%2==0 else 0)- 0.14, 
+                                                                    height * j,
+                                                                    block_material='stone',
+                                                                    spining = 90)
+                elif ftblock[i][j] == 5:
+                    support_block_elements += oxg.get_object_string('Block',
+                                                                    'SquareHole',
+                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    height * j,
+                                                                    block_material='stone',
+                                                                    spining = 180)
+                elif ftblock[i][j] == 6:
+                    support_block_elements += oxg.get_object_string('Platform',
+                                                                    'Platform',
+                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    height * j,
+                                                                    block_material='',
+                                                                    spining = 0)
+                elif ftblock[i][j] == 7:
+                    support_block_elements += oxg.get_object_string('Pig',
+                                                                    'BasicSmall',
+                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    height * j - 0.015,
+                                                                    block_material='',
+                                                                    spining = -1)
+                elif ftblock[i][j] != 0 and ftblock[i][j] != 9:
+                    primary_block_elements += oxg.get_object_string('Block',
+                                                                    'SquareTiny',
+                                                                    i * length + (0.12 if j%2==0 else 0),
+                                                                    height * j,
+                                                                    block_material='ice',
+                                                                    spining = 0)
+        xml = primary_block_elements + support_block_elements
+        with open(self.level_path, 'w') as level_file:
+                    level_file.write(LEVEL_TEMPLATE.strip().format(xml))
+      
+    def __repr__(self):
+        for i in range(len(self.matrix)):
+            for j in range(len(self.matrix[i])):
+                string = ''
+                for i in range(0,len(self.matrix)):
+                    if (len(self.matrix)-i-1)%2 == 0:
+                        string += ' '
+                    for j in self.matrix[i]:
+                        string += str(j)[-1] + ' '
+                    string +=  ('  ' if (len(self.matrix)-i-1)%2 else ' ') + str(i) + '\n'
+                return string
+
+if __name__ == "__main__":
+		# read args
+    obj = OBJmatrix(argv[1],int(argv[2]),4)
+    obj.generator_levels()
