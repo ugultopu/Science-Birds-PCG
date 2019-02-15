@@ -55,6 +55,10 @@ class Structure:
                  primary_block,
                  platform_block,
                  num_primary_blocks_on_x_axis):
+        self.blocks = []
+        self.platforms = []
+        self.platform_blocks = []
+        self.pig_indices = []
         self.level_path = level_path
         self.shape = shape
         self.primary_block = primary_block
@@ -68,12 +72,16 @@ class Structure:
         # This gets only non-empty rows.
         self.original_blocks = [row for row in self.get_blocks() if any(row)]
         self.blocks = self.transpose_and_invert_blocks(self.original_blocks)
+        self.write_level_to_file(self.level_path + '-primary_blocks.xml')
         # This is to start from bottom row and go towards the top row, instead
         # of vice-versa.
         self.original_blocks = self.original_blocks[::-1]
         self.platforms = sorted(list(self.get_platforms()))
+        self.get_platform_blocks()
+        self.write_level_to_file(self.level_path + '-primary_and_required_platform_blocks.xml')
         self.generate_extra_platforms()
         self.get_platform_blocks()
+        self.write_level_to_file(self.level_path + '-primary_and_all_platform_blocks.xml')
         self.get_blocks_for_pigs()
         self.vacate_blocks_for_pigs()
 
@@ -389,8 +397,8 @@ class Structure:
         return primary_block_elements + platform_block_elements + pig_elements
 
 
-    def construct_structure(self):
-        with open(self.level_path, 'w') as level_file:
+    def write_level_to_file(self, file_path):
+        with open(file_path, 'w') as level_file:
             level_file.write(LEVEL_TEMPLATE.strip().format(self.get_xml_elements()))
 
 
@@ -413,8 +421,10 @@ if __name__ == '__main__':
     config = ConfigParser()
     config.read('config.ini')
 
-    structure = Structure(config.get('DEFAULT', 'LevelPath') + svg_file_name.split('/')[-1].split('.')[0] + '.xml',
+    structure = Structure(config.get('DEFAULT', 'LevelPath') + svg_file_name.split('/')[-1].split('.')[0],
                           get_polygon_from_svg(svg_file_name),
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PrimaryBlock')],
                           BLOCK_REGISTRY[config.get('DEFAULT', 'PlatformBlock')],
-                          int(config.get('DEFAULT', 'NumberOfPrimaryBlocksOnXAxis'))).construct_structure()
+                          int(config.get('DEFAULT', 'NumberOfPrimaryBlocksOnXAxis')))
+
+    structure.write_level_to_file(structure.level_path + '.xml')
