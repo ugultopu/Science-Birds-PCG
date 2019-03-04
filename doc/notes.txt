@@ -1,6 +1,0 @@
--For now, we will assume that the input SVG contains only a single element,
-which will be a polygon.
--In an SVG, origin is on top-left. X increases towards right and Y increases
-towards down.
--Let's assume that the principal block (and possibly the auxiliary block as well)
-is a rectangular (or square) block for now.

@@ -16,19 +16,33 @@ import random
 import numpy as np
 import obj_xml_generator as oxg
 
-
 class OBJmatrix:
-    def __init__(self,svg_file_path,difficulty,interval):
-        self.perimeter = int(10 * difficulty) if difficulty < 10 else 100
-        self.interval = interval
+    def __init__(self,svg_file_path = '',perimeter = 50,matrix = None,name = 'newlevel.xml'):
+        self.interval = 4
         self.addition = lambda i: 1 if i%2==1 else 0
+        self.num_square = 0
+        self.num_rect = 0
+        self.num_pigs = 0
+        self.num_tnt = 0
+        self.num_platform = 0
         
-        self.file_path = svg_file_path
         config = ConfigParser()
         config.read('../../config.ini')
-        self.level_path = config.get('DEFAULT', 'LevelPath') + svg_file_path.split('/')[-1].split('.')[0] + '.xml'
-        self.shape = self.__get_polygon_from_svg()
-        self.matrix = self.__build_matrix()
+        
+        if svg_file_path != '':
+            self.perimeter = perimeter
+            self.file_path = svg_file_path
+            self.level_path = config.get('DEFAULT', 'LevelPath') + name
+            self.shape = self.__get_polygon_from_svg()
+            self.matrix = self.__build_matrix()
+            self.matrix = np.fliplr(self.matrix)
+        elif matrix:
+            self.level_path = config.get('DEFAULT', 'LevelPath') + name
+            self.matrix = matrix
+        else:
+            print("no input!")
+            return -1
+
         self.set_all_blocks()
         self.get_outline()
         self.set_all_blocks()
@@ -36,6 +50,7 @@ class OBJmatrix:
         self.add_support()
         self.support_points.reverse()
         self.adding_pigs()
+        
         
 
         
@@ -64,7 +79,6 @@ class OBJmatrix:
         
         self.num_block_column = self.perimeter - self.num_block_row
         
-        
         width = (maxx-minx)/self.num_block_column
         height = (maxy-miny)/self.num_block_row
         
@@ -82,7 +96,10 @@ class OBJmatrix:
                     tam.append(0)
             matrix.append(tam)
             
-
+#         matrix = [[ 1 if random.randint(0,100) > 90 else 0
+#                    for j in range(self.num_block_column)]
+#                   for i in range(self.num_block_row)]  #randomly create matrix
+        
         
         #extend the matrix size to do futher operations
         for i in matrix:
@@ -91,6 +108,8 @@ class OBJmatrix:
                 i.append(0)
         for i in range(2):
             matrix.insert(0,[0 for i in range(len(matrix[0]))])
+        #flip the matrix
+        
         return matrix
     
     def set_all_blocks(self):
@@ -123,13 +142,29 @@ class OBJmatrix:
             return 1
         elif not downleft and not downright:
             return 3
+#                 if not topleft:
+#                     self.matrix[i][j] = 0
+#                     self.set_block_type(i-1,j+addition)
+#                 if not topright:
+#                     self.matrix[i][j] = 0
+#                     self.set_block_type(i-1,j-1+addition)
         elif downleft:
+#                 if not topleft:
+#                     self.matrix[i][j] = 0
+#                     self.set_block_type(i-1,j+addition)
+#                 else:
+#                     self.matrix[i][j] = 2
             return  2
         elif downright:
+#                 if not topright:
+#                     self.matrix[i][j] = 0
+#                     self.set_block_type(i-1,j-1+addition)
+#                 else:
+#                     self.matrix[i][j] = 4
             return 4
                     
     def get_outline(self):
-        #find the outline for each row in the matrix
+        #find the width of outline for each row in the matrix
         widths = []
         for i in range(len(self.matrix)):
             width = []
@@ -137,7 +172,7 @@ class OBJmatrix:
             for j in range(1,len(self.matrix[i])-1):
                 bool_row = copy[j] != 0
                 bool_plus = copy[j+1] != 0
-                bool_minus = copy[j-1] != 0
+#                 bool_minus = copy[j-1] != 0
 #                 if bool_plus and bool_minus:   
                 self.matrix[i][j] = 0
                 if not bool_row and bool_plus:
@@ -188,10 +223,16 @@ class OBJmatrix:
                 self.support_points.append([i,support_points])
                 
     def add_support(self):
+        #adding support under those rectangles
         for row,rects in self.rectangle_points:
             if row + self.interval < len(self.matrix):
                 for rect in rects:
                     for index,col in enumerate(rect):
+
+                        if (rect[1]-rect[0]>3):
+                            offset = 3
+                        else:
+                            offset = 2
                         supported = False
                         #if there is a support block beneath this rectangle
                         if self.matrix[row+self.interval][col] != 0:
@@ -201,7 +242,9 @@ class OBJmatrix:
                                 self.matrix[row+i][col] = 1
                             continue
                         #if there is support block beneath near by this rectangle
-                        for j in range(1,3):
+
+
+                        for j in range(1,offset):
                             if self.matrix[row+self.interval][col+(j if index == 0 else -j)] != 0:
                                 y = col+(j if index == 0 else -j)
                                 for index in range(1,self.interval):
@@ -211,7 +254,7 @@ class OBJmatrix:
                                 supported = True
                                 break
                         #if there is a support block locate in the reverse direction of this rectangle
-                        for j in range(1,3):
+                        for j in range(1,offset):
                             if self.matrix[row+self.interval][col-(j if index == 0 else -j)] != 0:
                                 x,y = (row,col-(j-2 if index == 0 else -j+2))
                                 for count in range(0,3):
@@ -222,9 +265,13 @@ class OBJmatrix:
                                 supported = True      
                                 break                  
                         if not supported:
-                            self.matrix[row+2][col] = 6
+                            if index == 0:
+                                self.matrix[row+2][col] = 6
+                            else:
+                                self.matrix[row+2][col] = 6
 
     def adding_pigs(self):
+#         adding pigs into rooms
         for i, rects in self.rectangle_points:
             for left,right in rects:
                 j = int((left+right)/2)+1
@@ -241,11 +288,9 @@ class OBJmatrix:
                         self.matrix[i-1][j] = 7
     
     def generator_levels(self):
-        #length_square = 0.24055
-        #height_square = 0.225
         length = 0.24055
         height = 0.22888
-        start_pos = (-4,-3.4)
+        start_pos = (-1,-3.4)
 
 
         block = self.matrix
@@ -255,66 +300,75 @@ class OBJmatrix:
         
         for i in range(len(ftblock)):
             for j in range(len(ftblock[i])):
+                addition = (0.12 if j%2==0 else 0)
                 if ftblock[i][j] == 32:
+                    self.num_rect += 1
                     support_block_elements += oxg.get_object_string('Block',
                                                                     'RectTiny',
-                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    start_pos[0] +i * length + addition, 
                                                                     height * j,
                                                                     block_material='stone',
                                                                     spining = 0)
                 elif ftblock[i][j] == 33:
+                    self.num_rect += 1
                     support_block_elements += oxg.get_object_string('Block',
                                                                     'RectSmall',
-                                                                    i * length + (0.12 if j%2==0 else 0)- 0.14, 
+                                                                    start_pos[0] +i * length + addition- 0.14, 
                                                                     height * j,
                                                                     block_material='stone',
                                                                     spining = 0)
                 elif ftblock[i][j] == 34:
+                    self.num_rect += 1
                     support_block_elements += oxg.get_object_string('Block',
                                                                     'RectMedium',
-                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    start_pos[0] +i * length + addition, 
                                                                     height * j,
                                                                     block_material='stone',
                                                                     spining = 0)
                 elif ftblock[i][j] == 35:
+                    self.num_rect += 1
                     support_block_elements += oxg.get_object_string('Block',
                                                                     'RectBig',
-                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    start_pos[0] + i * length + addition,
                                                                     height * j,
                                                                     block_material='stone',
                                                                     spining = 0)
                 elif ftblock[i][j] == 4:
+                    self.num_tnt += 1
                     support_block_elements += oxg.get_object_string('TNT',
                                                                     '',
-                                                                    i * length + (0.12 if j%2==0 else 0)- 0.14, 
+                                                                    start_pos[0] +i * length + addition - 0.14, 
                                                                     height * j,
                                                                     block_material='stone',
                                                                     spining = 90)
                 elif ftblock[i][j] == 5:
                     support_block_elements += oxg.get_object_string('Block',
                                                                     'SquareHole',
-                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    start_pos[0] +i * length + addition, 
                                                                     height * j,
                                                                     block_material='stone',
                                                                     spining = 180)
                 elif ftblock[i][j] == 6:
+                    self.num_platform += 1
                     support_block_elements += oxg.get_object_string('Platform',
                                                                     'Platform',
-                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    start_pos[0] +i * length + addition, 
                                                                     height * j,
                                                                     block_material='',
                                                                     spining = 0)
                 elif ftblock[i][j] == 7:
+                    self.num_pigs += 1
                     support_block_elements += oxg.get_object_string('Pig',
                                                                     'BasicSmall',
-                                                                    i * length + (0.12 if j%2==0 else 0), 
+                                                                    start_pos[0] +i * length + addition, 
                                                                     height * j - 0.015,
                                                                     block_material='',
                                                                     spining = -1)
                 elif ftblock[i][j] != 0 and ftblock[i][j] != 9:
+                    self.num_square += 1
                     primary_block_elements += oxg.get_object_string('Block',
                                                                     'SquareTiny',
-                                                                    i * length + (0.12 if j%2==0 else 0),
+                                                                    start_pos[0] +i * length + addition,
                                                                     height * j,
                                                                     block_material='ice',
                                                                     spining = 0)
@@ -333,8 +387,3 @@ class OBJmatrix:
                         string += str(j)[-1] + ' '
                     string +=  ('  ' if (len(self.matrix)-i-1)%2 else ' ') + str(i) + '\n'
                 return string
-
-if __name__ == "__main__":
-		# read args
-    obj = OBJmatrix(argv[1],int(argv[2]),4)
-    obj.generator_levels()
