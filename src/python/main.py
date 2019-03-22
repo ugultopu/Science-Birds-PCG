@@ -8,6 +8,7 @@ from io import BytesIO
 import tarfile
 import tempfile
 from six.moves import urllib
+from configparser import ConfigParser
 
 import numpy as np
 from PIL import Image
@@ -67,16 +68,20 @@ class DeepLabModel(object):
 		return resized_image, seg_map
 
 if __name__ == "__main__":
+	abs_path = '/'.join(os.path.abspath(argv[0]).split('/')[:-1])
+	cwd = os.getcwd()
+
 	if len(argv) < 3:
 		print("insufficent inputs")
-		print("format: [deeplab|gimp] [difficulty:1-4] [file-path]")
+		print("format: [deeplab|gimp] [difficulty:1-3] [file-path]")
 	else:
-		file_path = argv[3]
-		if file_path[-1] != '/':
-			file_path += '/'
-		difficulty = int(argv[2]) * 20
+		file_path = join(cwd,argv[3])
+		difficulty =  20 ** int(argv[2])
 		model = argv[1]
-   
+		config = ConfigParser()
+		config.read(join(abs_path+'/../../config.ini'))
+		game_level_path = config.get('DEFAULT', 'LevelPath')
+
 		if model == 'deeplab':
 			#@title Select and download models {display-mode: "form"}
 
@@ -95,7 +100,7 @@ if __name__ == "__main__":
 			}
 			_TARBALL_NAME = MODEL_NAME+'.tar.gz'
 
-			model_dir = '../training_model/'
+			model_dir = join(abs_path,'../training_model/')
 
 			download_path = os.path.join(model_dir, _TARBALL_NAME)
 
@@ -109,9 +114,11 @@ if __name__ == "__main__":
 			MODEL = DeepLabModel(download_path)
 			print('model loaded successfully!')
 
-
+			#fetch pictures from user input
+			pictures = [ f for f in listdir(file_path) if isfile(join(file_path, f)) ]
 			for pic in pictures:
-				jpg = Image.open(file_path+pic)
+				jpg = Image.open(join(file_path,pic))
+				print('processing',pic)
 				resized_im, seg_map = MODEL.run(jpg)
 				#setting width and length of matrix
 				width = len(seg_map[0])
@@ -138,19 +145,23 @@ if __name__ == "__main__":
 					for count in range(3):
 						i.append(0)
 						i.insert(0,0)
-
+				
+				
 				#generate structures
-				OBJmatrix(matrix=mat,name=pic.split('.')[0]+'.xml')
+				OBJmatrix(matrix=mat,name=pic.split('.')[0]+'.xml',difficulty = difficulty,game_level_path=game_level_path)
+				print(pic,'completed')
 		elif model == "gimp":
-			os.system('../shell/main.sh ../shell/ '+file_path)
+			os.system(join(abs_path,'../shell/main.sh')+' ../shell/ '+file_path)
 			svgs = [f 
 					for f in listdir(file_path) 
-					if f.find('polygon')!= -1 and isfile(join(file_path, f))]
+					if f.find('polygon')!= -1 and (f.split('.')[-1] == 'jpg' or f.split('.')[-1] == 'jpeg')]
 			for svg in svgs:
 				OBJmatrix(
 					svg_file_path=file_path+svg,
 					perimeter=difficulty,
-					name = svg.split('-')[0]+'.xml'
+					name = svg.split('-')[0]+'.xml',
+                    difficulty = difficulty,
+					game_level_path = game_level_path
 				)
 
 

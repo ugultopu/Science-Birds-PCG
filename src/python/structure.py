@@ -17,7 +17,7 @@ import numpy as np
 import obj_xml_generator as oxg
 
 class OBJmatrix:
-    def __init__(self,svg_file_path = '',perimeter = 50,matrix = None,name = 'newlevel.xml'):
+    def __init__(self,svg_file_path = '',perimeter = 50,matrix = None,game_level_path = '',name = 'newlevel.xml',difficulty = 40):
         self.interval = 4
         self.addition = lambda i: 1 if i%2==1 else 0
         self.num_square = 0
@@ -26,18 +26,15 @@ class OBJmatrix:
         self.num_tnt = 0
         self.num_platform = 0
         
-        config = ConfigParser()
-        config.read('../../config.ini')
+        self.level_path = game_level_path + name
         
         if svg_file_path != '':
             self.perimeter = perimeter
             self.file_path = svg_file_path
-            self.level_path = config.get('DEFAULT', 'LevelPath') + name
             self.shape = self.__get_polygon_from_svg()
             self.matrix = self.__build_matrix()
             self.matrix = np.fliplr(self.matrix)
         elif matrix:
-            self.level_path = config.get('DEFAULT', 'LevelPath') + name
             self.matrix = matrix
         else:
             print("no input!")
@@ -50,10 +47,15 @@ class OBJmatrix:
         self.add_support()
         self.support_points.reverse()
         self.adding_pigs()
-        
-        
+        #generate birds
+        self.birds = ''
+        if difficulty == 20:
+            self._generate_birds(3,'Red')
+        elif difficulty == 40:
+            self._generate_birds(2,'Black')
+        elif difficulty == 80:
+            self._generate_birds(3,'Black')
 
-        
         #generator levels
         self.generator_levels()
         
@@ -372,9 +374,14 @@ class OBJmatrix:
                                                                     height * j,
                                                                     block_material='ice',
                                                                     spining = 0)
+        
         xml = primary_block_elements + support_block_elements
         with open(self.level_path, 'w') as level_file:
-                    level_file.write(LEVEL_TEMPLATE.strip().format(xml))
+                    level_file.write(LEVEL_TEMPLATE.strip().format(self.birds,xml))
+        
+    def _generate_birds(self,num,name):
+        for i in range(num):
+            self.birds += '<Bird type="Bird{}"/>\n'.format(name)
       
     def __repr__(self):
         for i in range(len(self.matrix)):

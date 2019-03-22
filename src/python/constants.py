@@ -27,13 +27,11 @@ LEVEL_TEMPLATE ='''
 <Level width="2">
   <Camera x="0" y="2" minWidth="20" maxWidth="30">
     <Birds>
-      <Bird type="BirdRed"/>
-      <Bird type="BirdBlack"/>
-      <Bird type="BirdWhite"/>
+{}
     </Birds>
     <Slingshot x="-8" y="-2.5">
       <GameObjects>
-        {}
+{}
       </GameObjects>
     </Slingshot>
   </Camera>
